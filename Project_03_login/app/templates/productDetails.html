@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Informações do produto{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/details.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2>Detalhes do Produto</h2>
+        <hr>
+        <div class="info-card">
+            <p><strong>ID do Sistema:      </strong> #{{ produto.id }}</p>
+            <p><strong>Nome:               </strong> {{ produto.name }}</p>
+            <p><strong>Categoria:          </strong> {{ produto.categoria.name }}</p>
+            <p><strong>Preço:              </strong> R$ {{ "%.2f"|format(produto.price) }}</p>
+            <p><strong>Estoque Disponível: </strong> {{ produto.quantity }} unidades</p>
+            <p><strong>Fabricante:         </strong> {{ produto.manufacturer }}</p>
+            <p><strong>Data de Fabricação: </strong> {{ produto.manufacturing_date.strftime('%d/%m/%Y') }}</p>
+            <p><strong>Data de Validade:   </strong> 
+                {% if produto.expiration_date %}
+                    {{ produto.expiration_date.strftime('%d/%m/%Y') }}
+                {% else %}
+                    <span class="text-muted">Não aplicável</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="actions">
+            <a href="{{ url_for('listar_produtos') }}" class="btn-back">Voltar para a Lista</a>
+        </div>
+    </div>
+{% endblock %}
