@@ -1,0 +1,108 @@
+/* CONTAINER DA DASHBOARD (Quando logado) */
+.welcome-container { 
+    background: #fff; 
+    padding: 2rem; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+    margin-bottom: 2rem; 
+}
+.welcome-container h1 { color: #2c3e50; margin-bottom: 10px; }
+.welcome-container p { color: #555; }
+
+.dashboard-cards { display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 2rem; }
+.card-single { display: flex; justify-content: space-between; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-items: center; }
+.card-single h2 { color: #2c3e50; }
+.card-single span { color: #8390a2; font-weight: 500; }
+.card-btn { background: #2c3e50; color: #fff; padding: 8px 16px; border-radius: 4px; transition: 0.2s; }
+.card-btn:hover { background: #1d2731; }
+
+/* ==========================================================
+   NOVO DESIGN: CARD DE LOGIN COMPACTO E MODERNO (Quando deslogado)
+   ========================================================== */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh; /* Centraliza verticalmente na área útil */
+}
+
+.login-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 360px; /* Mantém o retângulo menor e compacto */
+    padding: 35px 30px;
+    border-radius: 12px; /* Cantos arredondados mais modernos */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Sombra difusa e elegante */
+    border: 1px solid #eaedf1;
+}
+
+.login-card h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #1e293b;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+.login-card .form-group {
+    margin-bottom: 18px;
+}
+
+.login-card label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+    background-color: #f8fafc;
+}
+
+/* Efeito de foco moderno nos inputs */
+.login-card input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.btn-login {
+    width: 100%;
+    background-color: #0e53c2;
+    color: rgb(19, 51, 234);
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: 8px;
+}
+
+.btn-login:hover {
+    background-color: #a3a5aa;
+}
+
+.btn-login:active {
+    transform: scale(0.98); /* Pequeno efeito de clique */
+}
