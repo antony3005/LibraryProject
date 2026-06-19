@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Empréstimo</title>
+    <link rel="stylesheet" href="/static/css/emprestimo.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Registrar Empréstimo</h1>
+
+    <form method="POST">
+
+        <label>ID do Usuário</label>
+        <input type="number" name="usuario" required>
+
+        <label>Livro</label>
+        <select name="livro" required>
+
+            {% for livro in livros %}
+                <option value="{{ livro.id }}">
+                    {{ livro.titulo }}
+                </option>
+            {% endfor %}
+
+        </select>
+
+        <button type="submit">
+            Registrar Empréstimo
+        </button>
+
+    </form>
+
+    <a href="/menu" class="voltar">
+        Voltar ao Menu
+    </a>
+
+</div>
+
+</body>
+</html>

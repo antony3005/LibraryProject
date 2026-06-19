@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Livro</title>
+    <link rel="stylesheet" href="/static/css/editar_livro.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Editar Livro</h1>
+
+    <form method="POST">
+
+        <input type="text" name="isbn" value="{{ livro.isbn }}" placeholder="ISBN" required>
+
+        <input type="text" name="titulo" value="{{ livro.titulo }}" placeholder="Título" required>
+
+        <input type="text" name="autor" value="{{ livro.autor }}" placeholder="Autor" required>
+
+        <input type="text" name="categoria" value="{{ livro.categoria }}" placeholder="Categoria" required>
+
+        <input type="text" name="editora" value="{{ livro.editora }}" placeholder="Editora" required>
+
+        <input type="number" name="ano" value="{{ livro.ano }}" placeholder="Ano" required>
+
+        <input type="number" name="quantidade" value="{{ livro.quantidade }}" placeholder="Quantidade" required>
+
+        <button type="submit">Salvar Alterações</button>
+
+    </form>
+
+    <a href="/acervo" class="voltar">Voltar ao Acervo</a>
+
+</div>
+
+</body>
+</html>

@@ -1,11 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <link rel="stylesheet" href="/static/css/acervo.css">
+    <title>Biblioteca</title>
 </head>
 <body>
-    
+
+<h1>Acervo da Biblioteca</h1>
+
+<a href="/cadastrar_livro">Cadastrar Livro</a>
+
+<hr>
+
+{% for livro in livros %}
+
+<p>
+    <strong>{{ livro.titulo }}</strong><br>
+    Autor: {{ livro.autor }}<br>
+    Categoria: {{ livro.categoria }}<br>
+    Editora: {{ livro.editora }}<br>
+    Ano: {{ livro.ano }}<br>
+    Quantidade: {{ livro.quantidade }}
+</p>
+
+<a href="/editar_livro/{{ livro.id }}">
+    Editar
+</a>
+
+|
+
+<a href="/excluir_livro/{{ livro.id }}">
+    Excluir
+</a>
+
+<hr>
+
+{% endfor %}
+
+<div class="livro">
 </body>
 </html>

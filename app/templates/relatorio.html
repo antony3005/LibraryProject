@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório Estatístico</title>
+    <link rel="stylesheet" href="/static/css/relatorio.css">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>📊 Relatório Estatístico</h1>
+        <p>Visão geral do acervo da biblioteca</p>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <h2>{{ total_livros }}</h2>
+            <p>Total de Livros</p>
+        </div>
+
+        <div class="card">
+            <h2>{{ total_emprestimos }}</h2>
+            <p>Empréstimos Ativos</p>
+        </div>
+
+        <div class="card">
+            <h2>{{ total_categorias }}</h2>
+            <p>Categorias</p>
+        </div>
+
+    </div>
+
+    <div class="table-box">
+
+        <h2>📚 Livros por Categoria</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Categoria</th>
+                    <th>Quantidade</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for categoria in categorias %}
+                <tr>
+                    <td>{{ categoria.nome }}</td>
+                    <td>{{ categoria.quantidade }}</td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>
