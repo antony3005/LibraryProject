@@ -16,7 +16,7 @@ def login():
         usuario = request.form.get('usuario')
         senha = request.form.get('senha')
 
-        if usuario == 'Gabriel da Silva Pereira' and senha == '1234':
+        if usuario == 'abcd' and senha == '123':
             return redirect(url_for('menu'))
 
         return "Usuário ou senha inválidos"
