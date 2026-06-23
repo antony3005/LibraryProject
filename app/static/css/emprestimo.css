@@ -1,80 +1,88 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, sans-serif;
+body {
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
+    min-height: 100vh;
+    color: white;
 }
 
-body{
-    background:#f4f6f9;
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+/* CENTRALIZA TELA */
+.page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
 }
 
-.container{
-    background:white;
-    width:500px;
-    padding:30px;
-    border-radius:12px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.15);
+/* CARD MAIOR + MAIS AR */
+.card-emprestimo {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    padding: 40px;
+    border-radius: 18px;
+    width: 650px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
 
-h1{
-    text-align:center;
-    color:#1e3c72;
-    margin-bottom:25px;
+/* GRID MAIS ESPAÇADO */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px; /* 👈 AUMENTADO */
+    margin-top: 25px;
 }
 
-label{
-    display:block;
-    margin-bottom:5px;
-    font-weight:bold;
-    color:#333;
+/* LABEL MAIS RESPIRADO */
+label {
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.9;
 }
 
-input,
-select{
-    width:100%;
-    padding:12px;
-    margin-bottom:15px;
-    border:1px solid #ccc;
-    border-radius:6px;
-    font-size:15px;
+/* INPUT MAIS BONITO */
+.input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    margin-bottom: 15px;
 }
 
-input:focus,
-select:focus{
-    outline:none;
-    border-color:#1e3c72;
+/* BOTÃO MAIS DESTACADO */
+.full {
+    grid-column: span 2;
+    margin-top: 10px;
 }
 
-button{
-    width:100%;
-    padding:12px;
-    background:#1e3c72;
-    color:white;
-    border:none;
-    border-radius:6px;
-    font-size:16px;
-    cursor:pointer;
-    transition:0.3s;
+button {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    border: none;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.3s;
 }
 
-button:hover{
-    background:#2a5298;
+button:hover {
+    background: #1d4ed8;
+    transform: scale(1.02);
 }
 
-.voltar{
-    display:block;
-    text-align:center;
-    margin-top:15px;
-    text-decoration:none;
-    color:#1e3c72;
-    font-weight:bold;
+/* LINK VOLTAR MAIS AFASTADO */
+.voltar {
+    display: block;
+    margin-top: 20px;
+    text-align: center;
+    color: white;
+    opacity: 0.7;
+    text-decoration: none;
 }
 
-.voltar:hover{
-    text-decoration:underline;
+.voltar:hover {
+    opacity: 1;
 }

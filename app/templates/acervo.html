@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">📚 Acervo de Livros</h2>
+
+<div class="row">
+
+    {% for livro in livros %}
+
+    <div class="col-md-4 mb-4">
+
+        <div class="card text-bg-dark shadow-lg h-100">
+
+            <div class="card-body">
+
+                <h5 class="card-title">
+                    {{ livro.titulo }}
+                </h5>
+
+                <p class="card-text">
+                    <strong>Autor:</strong> {{ livro.autor }}<br>
+                    <strong>Categoria:</strong> {{ livro.categoria }}<br>
+                    <strong>Editora:</strong> {{ livro.editora }}<br>
+                    <strong>Ano:</strong> {{ livro.ano }}<br>
+                    <strong>Quantidade:</strong> {{ livro.quantidade }}
+                </p>
+
+            </div>
+
+            <div class="card-footer d-flex justify-content-between">
+
+                <a href="/editar_livro/{{ livro.id }}" class="btn btn-warning btn-sm">
+                    Editar
+                </a>
+
+                <a href="/excluir_livro/{{ livro.id }}" class="btn btn-danger btn-sm"
+                   onclick="return confirm('Tem certeza que deseja excluir este livro?')">
+                    Excluir
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% if not livros %}
+<div class="alert alert-info text-center">
+    Nenhum livro cadastrado ainda.
+</div>
+{% endif %}
+
+{% endblock %}

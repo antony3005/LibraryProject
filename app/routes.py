@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for
 
 from app import app, db
-from app.form import CadastroUsuario
+from app.form import CadastroUsuario, CadastroLivro, EditarLivro
 from app.models import Livro, Emprestimo, Usuario, PerfilEnum
 
 
@@ -33,23 +33,23 @@ def menu():
 @app.route('/acervo')
 def acervo():
     livros = Livro.query.all()
-    return render_template('index.html', livros=livros)
+    return render_template('acervo.html', livros=livros)
 
 
-@app.route('/cadastrar_livro', methods=['GET', 'POST'])
-def cadastrar_livro():
-    if request.method == 'POST':
-        quantidade = int(request.form['quantidade'])
-
+@app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
+def editar_livro(id):
+    livro = Livro.query.get_or_404(id)
+    form = EditarLivro()
+    if form.validate_on_submit():
         livro = Livro(
-            isbn=request.form['isbn'],
-            titulo=request.form['titulo'],
-            autor=request.form['autor'],
-            categoria=request.form['categoria'],
-            editora=request.form['editora'],
-            ano=request.form['ano'],
-            quantidade=quantidade,
-            disponiveis=quantidade
+            isbn=form.isbn.data,
+            titulo=form.titulo.data,
+            autor=form.autor.data,
+            categoria=form.categoria.data,
+            editora=form.editora.data,
+            ano=form.ano.data,
+            quantidade=form.quantidade.data,
+            disponiveis=form.quantidade.data
         )
 
         db.session.add(livro)
@@ -57,27 +57,7 @@ def cadastrar_livro():
 
         return redirect(url_for('acervo'))
 
-    return render_template('cadastrar_livro.html')
-
-
-@app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
-def editar_livro(id):
-    livro = Livro.query.get_or_404(id)
-
-    if request.method == 'POST':
-        livro.isbn = request.form['isbn']
-        livro.titulo = request.form['titulo']
-        livro.autor = request.form['autor']
-        livro.categoria = request.form['categoria']
-        livro.editora = request.form['editora']
-        livro.ano = request.form['ano']
-        livro.quantidade = request.form['quantidade']
-
-        db.session.commit()
-
-        return redirect(url_for('acervo'))
-
-    return render_template('editar_livro.html', livro=livro)
+    return render_template('editar_livro.html', form=form, livro=livro)
 
 
 @app.route('/excluir_livro/<int:id>')
@@ -93,6 +73,7 @@ def excluir_livro(id):
 @app.route('/emprestimo', methods=['GET', 'POST'])
 def emprestimo():
     livros = Livro.query.all()
+    usuarios=Usuario.query.all()
 
     if request.method == 'POST':
 
@@ -121,8 +102,33 @@ def emprestimo():
 
     return render_template(
         'emprestimo.html',
-        livros=livros
+        livros=livros,
+        usuarios=usuarios
+
     )
+
+
+@app.route('/cadastrar_livro', methods=['GET', 'POST'])
+def cadastrar_livro():
+    form = CadastroLivro()
+
+    if form.validate_on_submit():
+        livro = Livro(
+            isbn=form.isbn.data,
+            titulo=form.titulo.data,
+            autor=form.autor.data,
+            categoria=form.categoria.data,
+            editora=form.editora.data,
+            ano=form.ano.data,
+            quantidade=form.quantidade.data,
+            disponiveis=form.quantidade.data
+        )
+
+        db.session.add(livro)
+        db.session.commit()
+        return redirect(url_for('acervo'))
+
+    return render_template('cadastrar_livro.html', form=form)
 
 
 @app.route("/cadastro", methods=["GET", "POST"])
@@ -168,7 +174,6 @@ def alunos():
 
 @app.route('/professores')
 def professores():
-    
     professores = Usuario.query.filter(Usuario.perfil == "PROFESSOR").all()
     return render_template('painel_professor.html', professores=professores)
 

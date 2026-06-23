@@ -1,43 +1,75 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Registrar Empréstimo</title>
-    <link rel="stylesheet" href="/static/css/emprestimo.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="container">
+{% block content %}
 
-    <h1>Registrar Empréstimo</h1>
+<div class="page">
 
-    <form method="POST">
+    <div class="card-emprestimo">
 
-        <label>ID do Usuário</label>
-        <input type="number" name="usuario" required>
+        <h2>📚 Novo Empréstimo</h2>
 
-        <label>Livro</label>
-        <select name="livro" required>
+        <form method="POST" class="form-grid">
 
-            {% for livro in livros %}
-                <option value="{{ livro.id }}">
-                    {{ livro.titulo }}
-                </option>
-            {% endfor %}
+            <div class="left">
 
-        </select>
+                <label>Buscar Usuário</label>
+                <input type="text" id="buscaUsuario" placeholder="Nome ou email..." class="input">
 
-        <button type="submit">
-            Registrar Empréstimo
-        </button>
+                <label>Usuário</label>
+                <select name="usuario" id="selectUsuario" class="input" required>
+                    <option value="">Selecione</option>
+                    {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}">
+                            {{ usuario.nome }} {{ usuario.sobrenome }}
+                        </option>
+                    {% endfor %}
+                </select>
 
-    </form>
+            </div>
 
-    <a href="/menu" class="voltar">
-        Voltar ao Menu
-    </a>
+            <div class="right">
+
+                <label>Livro</label>
+                <select name="livro" class="input" required>
+                    <option value="">Selecione um livro</option>
+                    {% for livro in livros %}
+                        <option value="{{ livro.id }}">
+                            {{ livro.titulo }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+
+
+            </div>
+
+            <div class="full">
+                <p> apartir do momento do emprestimo o prazo de devolução para alunos é de 7 dias e para professores 15 dias</p>
+                <button type="submit">
+                    Registrar Empréstimo
+                </button>
+            </div>
+
+        </form>
+
+        <a href="/menu" class="voltar">← Voltar</a>
+
+    </div>
 
 </div>
 
-</body>
-</html>
+<script>
+const input = document.getElementById("buscaUsuario");
+const select = document.getElementById("selectUsuario");
+
+input.addEventListener("input", function () {
+    const filtro = input.value.toLowerCase();
+
+    for (let option of select.options) {
+        const texto = option.text.toLowerCase();
+        option.style.display = texto.includes(filtro) || option.value === "" ? "" : "none";
+    }
+});
+</script>
+
+{% endblock %}

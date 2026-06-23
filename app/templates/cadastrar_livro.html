@@ -1,37 +1,54 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Cadastrar Livro</title>
-    <link rel="stylesheet" href="/static/css/cadastrar_livro.css">
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block content %}
 
 <div class="container">
+    <div class="container-form">
 
-    <h1>Cadastrar Livro</h1>
+        <h2>Cadastro</h2>
 
-    <form method="POST">
+        <form method="POST" class="mt-4">
+            {{ form.hidden_tag() }}
 
-        <input type="text" name="isbn" placeholder="ISBN" required>
+            <div class="mb-3">
+                {{ form.titulo.label(class="form-label") }}
+                {{ form.titulo(class="form-control") }}
+            </div>
 
-        <input type="text" name="titulo" placeholder="Título" required>
+            <div class="mb-3">
+                {{ form.isbn.label(class="form-label") }}
+                {{ form.isbn(class="form-control") }}
+            </div>
 
-        <input type="text" name="autor" placeholder="Autor" required>
+            <div class="mb-3">
+                {{ form.autor.label(class="form-label") }}
+                {{ form.autor(class="form-control") }}
+            </div>
 
-        <input type="text" name="categoria" placeholder="Categoria" required>
+            <div class="mb-3">
+                {{ form.categoria.label(class="form-label") }}
+                {{ form.categoria(class="form-select", id="perfil") }}
+            </div>
 
-        <input type="text" name="editora" placeholder="Editora" required>
+            <div class="mb-3">
+                {{ form.editora.label(class="form-label") }}
+                {{ form.editora(class="form-control") }}
+            </div>
 
-        <input type="number" name="ano" placeholder="Ano" required>
+            <div class="mb-3">
+                {{ form.ano.label(class="form-label") }}
+                {{ form.ano(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                {{ form.quantidade.label(class="form-label") }}
+                {{ form.quantidade(class="form-control") }}
+            </div>
 
-        <input type="number" name="quantidade" placeholder="Quantidade" required>
+            <button type="submit" class="btn btn-primary w-100">
+                {{ form.submit.label.text }}
+            </button>
+        </form>
 
-        <button type="submit">Cadastrar</button>
-
-    </form>
-
+    </div>
 </div>
-
-</body>
-</html>
+{% endblock %}
