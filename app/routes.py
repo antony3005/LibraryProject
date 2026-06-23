@@ -1,7 +1,8 @@
 from flask import render_template, request, redirect, url_for
 
 from app import app, db
-from app.models import Livro, Emprestimo
+from app.form import CadastroUsuario
+from app.models import Livro, Emprestimo, Usuario
 
 
 @app.route('/')
@@ -11,7 +12,6 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     if request.method == 'POST':
 
         usuario = request.form.get('usuario')
@@ -38,9 +38,7 @@ def acervo():
 
 @app.route('/cadastrar_livro', methods=['GET', 'POST'])
 def cadastrar_livro():
-
     if request.method == 'POST':
-
         quantidade = int(request.form['quantidade'])
 
         livro = Livro(
@@ -64,11 +62,9 @@ def cadastrar_livro():
 
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 def editar_livro(id):
-
     livro = Livro.query.get_or_404(id)
 
     if request.method == 'POST':
-
         livro.isbn = request.form['isbn']
         livro.titulo = request.form['titulo']
         livro.autor = request.form['autor']
@@ -86,7 +82,6 @@ def editar_livro(id):
 
 @app.route('/excluir_livro/<int:id>')
 def excluir_livro(id):
-
     livro = Livro.query.get_or_404(id)
 
     db.session.delete(livro)
@@ -97,7 +92,6 @@ def excluir_livro(id):
 
 @app.route('/emprestimo', methods=['GET', 'POST'])
 def emprestimo():
-
     livros = Livro.query.all()
 
     if request.method == 'POST':
@@ -134,6 +128,41 @@ def emprestimo():
 @app.route('/painel_aluno')
 def painel_aluno():
     return render_template('painel_aluno.html')
+
+
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    form = CadastroUsuario()
+
+    form.perfil.choices = [
+        ("aluno", "Aluno"),
+        ("professor", "Professor"),
+        ("admin", "Admin")
+    ]
+
+    if form.validate_on_submit():
+
+        perfil = form.perfil.data
+        senha = form.senha.data
+
+        if perfil == "admin":
+            if not senha:
+                return "Admin precisa de senha!", 400
+
+        user = Usuario(
+            nome=form.nome.data,
+            sobrenome=form.sobrenome.data,
+            email=form.email.data,
+            perfil=form.perfil.data,
+            senha=form.senha.data
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        return f"Criado: {perfil}"
+
+    return render_template("cadastro.html", form=form)
 
 
 @app.route('/painel_professor')

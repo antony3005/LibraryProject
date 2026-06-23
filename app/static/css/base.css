@@ -1,0 +1,42 @@
+nav {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 20px 50px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+}
+
+nav .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+}
+
+nav .logo a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+nav .links {
+    display: flex;
+    gap: 15px;
+}
+
+nav .links a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+nav .links a:hover {
+    background: rgba(255, 255, 255, 0.15);
+}

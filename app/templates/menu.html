@@ -1,25 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>BiblioTech</title>
-    <link rel="stylesheet" href="/static/css/menu.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-<nav>
-    <div class="logo">📚 BiblioTech</div>
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
 
-    <div class="links">
-        <a href="/acervo">Acervo</a>
-        <a href="/cadastrar_livro">Cadastrar Livro</a>
-        <a href="/emprestimo">Empréstimos</a>
-        <a href="/painel_aluno">Aluno</a>
-        <a href="/painel_professor">Professor</a>
-        <a href="/relatorio">Relatórios</a>
-        <a href="/login">Sair</a>
-    </div>
-</nav>
 
 <div class="hero">
 
@@ -56,5 +39,4 @@
 
 </div>
 
-</body>
-</html>
+{% endblock %}
