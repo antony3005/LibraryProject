@@ -1,13 +1,32 @@
-from app import db
-from werkzeug.security import generate_password_hash, check_password_hash
+import enum
 from datetime import datetime, timedelta
 
-class User(db.Model):
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from app import db
+
+
+class PerfilEnum(enum.Enum):
+    ALUNO = "aluno"
+    PROFESSOR = "professor"
+    ADMIN = "admin"
+
+
+class Usuario(db.Model):
+    __tablename__ = "usuario"
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100))
-    usuario = db.Column(db.String(50), unique=True)
+    sobrenome = db.Column(db.String(100))
+    email = db.Column(db.String(100))
     senha = db.Column(db.String(255))
-    perfil = db.Column(db.String(20))
+    perfil = db.Column(db.Enum(PerfilEnum, native_enum=False), nullable=False)
+
+    emprestimos = db.relationship(
+        'Emprestimo',
+        backref='usuario',
+        lazy=True
+    )
 
     def set_password(self, password):
         self.senha = generate_password_hash(password)
@@ -16,7 +35,9 @@ class User(db.Model):
         return check_password_hash(self.senha, password)
 
 
-class Book(db.Model):
+class Livro(db.Model):
+    __tablename__ = "livro"
+
     id = db.Column(db.Integer, primary_key=True)
     isbn = db.Column(db.String(20), unique=True)
     titulo = db.Column(db.String(200))
@@ -27,23 +48,43 @@ class Book(db.Model):
     quantidade = db.Column(db.Integer)
     disponiveis = db.Column(db.Integer)
 
+    emprestimos = db.relationship(
+        'Emprestimo',
+        backref='livro',
+        lazy=True
+    )
 
-class Loan(db.Model):
+
+class Emprestimo(db.Model):
+    __tablename__ = "emprestimo"
+
     id = db.Column(db.Integer, primary_key=True)
 
-    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    livro_id = db.Column(db.Integer, db.ForeignKey('book.id'))
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))
+    livro_id = db.Column(db.Integer, db.ForeignKey('livro.id'))
 
     data_emprestimo = db.Column(db.DateTime, default=datetime.utcnow)
     data_devolucao = db.Column(db.DateTime)
+    devolucao = db.Column(db.Boolean, default=False)
 
-    devolvido = db.Column(db.Boolean, default=False)
+    def definir_prazo(self, perfil: PerfilEnum):
+        if self.data_emprestimo is None:
+            self.data_emprestimo = datetime.utcnow()
+
+        if perfil == PerfilEnum.ALUNO:
+            dias = 7
+        elif perfil == PerfilEnum.PROFESSOR:
+            dias = 15
+        else:
+            dias = 30
+
+        self.data_devolucao = self.data_emprestimo + timedelta(days=dias)
 
 
 class BookSuggestion(db.Model):
+    __tablename__ = "book_suggestion"
+
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200))
     autor = db.Column(db.String(100))
     professor = db.Column(db.String(100))
-
-    

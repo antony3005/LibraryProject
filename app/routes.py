@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for
+
 from app import app, db
-from app.models import Book, Loan
+from app.models import Livro, Emprestimo
 
 
 @app.route('/')
@@ -31,7 +32,7 @@ def menu():
 
 @app.route('/acervo')
 def acervo():
-    livros = Book.query.all()
+    livros = Livro.query.all()
     return render_template('index.html', livros=livros)
 
 
@@ -42,7 +43,7 @@ def cadastrar_livro():
 
         quantidade = int(request.form['quantidade'])
 
-        livro = Book(
+        livro = Livro(
             isbn=request.form['isbn'],
             titulo=request.form['titulo'],
             autor=request.form['autor'],
@@ -64,7 +65,7 @@ def cadastrar_livro():
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 def editar_livro(id):
 
-    livro = Book.query.get_or_404(id)
+    livro = Livro.query.get_or_404(id)
 
     if request.method == 'POST':
 
@@ -86,7 +87,7 @@ def editar_livro(id):
 @app.route('/excluir_livro/<int:id>')
 def excluir_livro(id):
 
-    livro = Book.query.get_or_404(id)
+    livro = Livro.query.get_or_404(id)
 
     db.session.delete(livro)
     db.session.commit()
@@ -97,14 +98,14 @@ def excluir_livro(id):
 @app.route('/emprestimo', methods=['GET', 'POST'])
 def emprestimo():
 
-    livros = Book.query.all()
+    livros = Livro.query.all()
 
     if request.method == 'POST':
 
         usuario_id = request.form['usuario']
         livro_id = request.form['livro']
 
-        livro = Book.query.get_or_404(livro_id)
+        livro = Livro.query.get_or_404(livro_id)
 
         if livro.disponiveis is None:
             livro.disponiveis = livro.quantidade
@@ -112,7 +113,7 @@ def emprestimo():
         if livro.disponiveis <= 0:
             return "Não há exemplares disponíveis."
 
-        novo_emprestimo = Loan(
+        novo_emprestimo = Emprestimo(
             usuario_id=int(usuario_id),
             livro_id=int(livro_id)
         )
