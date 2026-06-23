@@ -1,12 +1,41 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="/static/css/painel_aluno.css">
-    <title>Painel do Aluno</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-<h1>Painel do Aluno</h1>
+{% block content %}
 
-</body>
-</html>
+<h2 class="mb-3">Lista de Alunos</h2>
+
+<table class="table table-dark table-hover table-striped">
+
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Sobrenome</th>
+            <th>Email</th>
+            <th>Perfil</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% if alunos %}
+            {% for aluno in alunos %}
+            <tr>
+                <th scope="row">{{ aluno.id }}</th>
+                <td>{{ aluno.nome }}</td>
+                <td>{{ aluno.sobrenome }}</td>
+                <td>{{ aluno.email }}</td>
+                <td>{{ aluno.perfil }}</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="4" class="text-center">
+                    Nenhum aluno cadastrado
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
+
+</table>
+
+{% endblock %}

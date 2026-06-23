@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for
 
 from app import app, db
 from app.form import CadastroUsuario
-from app.models import Livro, Emprestimo, Usuario
+from app.models import Livro, Emprestimo, Usuario, PerfilEnum
 
 
 @app.route('/')
@@ -125,11 +125,6 @@ def emprestimo():
     )
 
 
-@app.route('/painel_aluno')
-def painel_aluno():
-    return render_template('painel_aluno.html')
-
-
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
     form = CadastroUsuario()
@@ -153,7 +148,7 @@ def cadastro():
             nome=form.nome.data,
             sobrenome=form.sobrenome.data,
             email=form.email.data,
-            perfil=form.perfil.data,
+            perfil=PerfilEnum(form.perfil.data),
             senha=form.senha.data
         )
 
@@ -165,9 +160,17 @@ def cadastro():
     return render_template("cadastro.html", form=form)
 
 
-@app.route('/painel_professor')
-def painel_professor():
-    return render_template('painel_professor.html')
+@app.route("/alunos")
+def alunos():
+    alunos = Usuario.query.filter(Usuario.perfil == "ALUNO").all()
+    return render_template("painel_aluno.html", alunos=alunos)
+
+
+@app.route('/professores')
+def professores():
+    
+    professores = Usuario.query.filter(Usuario.perfil == "PROFESSOR").all()
+    return render_template('painel_professor.html', professores=professores)
 
 
 @app.route('/relatorio')
