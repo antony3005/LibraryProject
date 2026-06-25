@@ -1,6 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
+<form class="row g-2 mb-3" method="GET">
+
+    <!-- Busca -->
+    <div class="col-md-4">
+        <input
+                type="text"
+                class="form-control"
+                name="busca"
+                placeholder="Título, autor ou editora..."
+                value="{{ request.args.get('busca', '') }}"
+        >
+    </div>
+
+    <!-- Disponibilidade -->
+    <div class="col-md-2">
+        <select class="form-select" name="status">
+            <option value="">Todos</option>
+            <option value="disponivel">Disponível</option>
+            <option value="emprestado">Emprestado</option>
+        </select>
+    </div>
+
+    <!-- Ordenação -->
+    <div class="col-md-3">
+        <select class="form-select" name="ordenar">
+            <option value="titulo">Título (A-Z)</option>
+            <option value="autor">Autor</option>
+            <option value="editora">Editora</option>
+            <option value="novo">Mais recentes</option>
+            <option value="antigo">Mais antigos</option>
+        </select>
+    </div>
+
+    <!-- Botões -->
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">
+            Buscar
+        </button>
+
+
+    </div>
+
+</form>
 
 <h2 class="mb-4">📚 Acervo de Livros</h2>
 
@@ -27,7 +70,7 @@
                 </p>
 
             </div>
-
+            {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}
             <div class="card-footer d-flex justify-content-between">
 
                 <a href="/editar_livro/{{ livro.id }}" class="btn btn-warning btn-sm">
@@ -40,6 +83,7 @@
                 </a>
 
             </div>
+            {% endif %}
 
         </div>
 

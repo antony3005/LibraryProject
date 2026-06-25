@@ -67,8 +67,16 @@ class EditarLivro(FlaskForm):
 
     submit = SubmitField("Enviar")
 
+
 class EmprestarLivro(FlaskForm):
     usuario = StringField("Usuario", validators=[DataRequired()])
     livro = StringField("Livro", validators=[DataRequired()])
 
     submit = SubmitField("Enviar")
+
+
+class LoginForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    senha = PasswordField("Senha", validators=[DataRequired(), Length(min=8)])
+    submit = SubmitField("Enviar")
+

@@ -12,7 +12,7 @@ body {
     background: rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     backdrop-filter: blur(10px);
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 /* título */
@@ -25,15 +25,19 @@ body {
 /* inputs bootstrap ajustes */
 .form-control,
 .form-select {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
 }
 
 .form-control:focus,
 .form-select:focus {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.15);
     color: white;
     border-color: #3b82f6;
     box-shadow: none;
+}
+
+option {
+    background-color: #0f172a;
 }

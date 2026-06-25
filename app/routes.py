@@ -1,42 +1,117 @@
-from flask import render_template, request, redirect, url_for
+from functools import wraps
+
+from flask import render_template, request, redirect, url_for, abort
+from flask_login import current_user, login_user, login_required, logout_user
+from sqlalchemy import or_
 
 from app import app, db
-from app.form import CadastroUsuario, CadastroLivro, EditarLivro
+from app.form import CadastroUsuario, CadastroLivro, EditarLivro, LoginForm
 from app.models import Livro, Emprestimo, Usuario, PerfilEnum
 
 
 @app.route('/')
 def home():
-    return render_template('login.html')
+    return redirect(url_for('acervo'))
 
 
-@app.route('/login', methods=['GET', 'POST'])
+def perfil_requerido(*perfis):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+
+            if not current_user.is_authenticated:
+                abort(401)
+
+            if current_user.perfil not in perfis:
+                abort(403)
+
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
+    form = LoginForm()
 
-        usuario = request.form.get('usuario')
-        senha = request.form.get('senha')
+    if form.validate_on_submit():
 
-        if usuario == 'abcd' and senha == '123':
-            return redirect(url_for('menu'))
+        email = form.email.data
+        senha = form.senha.data
 
-        return "Usuário ou senha inválidos"
+        user = Usuario.query.filter_by(email=email).first()
 
-    return render_template('login.html')
+        if user and user.check_password(senha):
+            login_user(user)
+            return redirect(url_for("acervo"))
+
+        return "Login inválido", 401
+
+    return render_template("login.html", form=form)
 
 
 @app.route('/menu')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def menu():
     return render_template('menu.html')
 
 
-@app.route('/acervo')
+@app.route('/acervo', methods=['GET'])
 def acervo():
-    livros = Livro.query.all()
-    return render_template('acervo.html', livros=livros)
+    busca = request.args.get('busca', '')
+    status = request.args.get('status', '')
+    ordenar = request.args.get('ordenar', 'titulo')
+
+    query = Livro.query
+
+    # Busca por título, autor ou editora
+    if busca:
+        query = query.filter(
+            or_(
+                Livro.titulo.ilike(f'%{busca}%'),
+                Livro.autor.ilike(f'%{busca}%'),
+                Livro.editora.ilike(f'%{busca}%')
+            )
+        )
+
+    # Filtro de disponibilidade
+    if status == 'disponivel':
+        query = query.filter(Livro.disponivel == True)
+
+    elif status == 'emprestado':
+        query = query.filter(Livro.disponivel == False)
+
+    # Ordenação
+    if ordenar == 'titulo':
+        query = query.order_by(Livro.titulo.asc())
+
+    elif ordenar == 'autor':
+        query = query.order_by(Livro.autor.asc())
+
+    elif ordenar == 'editora':
+        query = query.order_by(Livro.editora.asc())
+
+    livros = query.all()
+
+    return render_template(
+        'acervo.html',
+        livros=livros
+    )
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
 
 
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def editar_livro(id):
     livro = Livro.query.get_or_404(id)
     form = EditarLivro()
@@ -61,6 +136,8 @@ def editar_livro(id):
 
 
 @app.route('/excluir_livro/<int:id>')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def excluir_livro(id):
     livro = Livro.query.get_or_404(id)
 
@@ -71,9 +148,11 @@ def excluir_livro(id):
 
 
 @app.route('/emprestimo', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def emprestimo():
     livros = Livro.query.all()
-    usuarios=Usuario.query.all()
+    usuarios = Usuario.query.all()
 
     if request.method == 'POST':
 
@@ -109,6 +188,8 @@ def emprestimo():
 
 
 @app.route('/cadastrar_livro', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def cadastrar_livro():
     form = CadastroLivro()
 
@@ -132,6 +213,8 @@ def cadastrar_livro():
 
 
 @app.route("/cadastro", methods=["GET", "POST"])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def cadastro():
     form = CadastroUsuario()
 
@@ -154,9 +237,10 @@ def cadastro():
             nome=form.nome.data,
             sobrenome=form.sobrenome.data,
             email=form.email.data,
-            perfil=PerfilEnum(form.perfil.data),
-            senha=form.senha.data
+            perfil=PerfilEnum(form.perfil.data)
         )
+
+        user.set_password(form.senha.data)
 
         db.session.add(user)
         db.session.commit()
@@ -167,17 +251,23 @@ def cadastro():
 
 
 @app.route("/alunos")
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def alunos():
     alunos = Usuario.query.filter(Usuario.perfil == "ALUNO").all()
     return render_template("painel_aluno.html", alunos=alunos)
 
 
 @app.route('/professores')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def professores():
     professores = Usuario.query.filter(Usuario.perfil == "PROFESSOR").all()
     return render_template('painel_professor.html', professores=professores)
 
 
 @app.route('/relatorio')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
 def relatorio():
     return render_template('relatorio.html')

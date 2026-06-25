@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime, timedelta
 
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app import db
@@ -12,7 +13,7 @@ class PerfilEnum(enum.Enum):
     ADMIN = "admin"
 
 
-class Usuario(db.Model):
+class Usuario(db.Model, UserMixin):
     __tablename__ = "usuario"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -20,6 +21,7 @@ class Usuario(db.Model):
     sobrenome = db.Column(db.String(100))
     email = db.Column(db.String(100))
     senha = db.Column(db.String(255))
+
     perfil = db.Column(db.Enum(PerfilEnum, native_enum=False), nullable=False)
 
     emprestimos = db.relationship(
@@ -27,6 +29,16 @@ class Usuario(db.Model):
         backref='usuario',
         lazy=True
     )
+
+    def calcular_data_devolucao(self, perfil: PerfilEnum):
+        hoje = datetime.now()
+
+        if perfil == "ALUNO":
+            return hoje + timedelta(days=7)
+        elif perfil == "PROFESSOR":
+            return hoje + timedelta(days=15)
+        else:
+            return hoje + timedelta(days=7)
 
     def set_password(self, password):
         self.senha = generate_password_hash(password)

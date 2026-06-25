@@ -3,73 +3,228 @@
 {% block content %}
 
 <div class="page">
-
     <div class="card-emprestimo">
-
-        <h2>📚 Novo Empréstimo</h2>
+        <h2>📋 Novo Empréstimo</h2>
 
         <form method="POST" class="form-grid">
 
+            <!-- COLUNA ESQUERDA: USUÁRIO -->
             <div class="left">
-
                 <label>Buscar Usuário</label>
-                <input type="text" id="buscaUsuario" placeholder="Nome ou email..." class="input">
+                <input type="text" id="search-usuario" class="input" placeholder="Nome ou email..."
+                       oninput="filtrarUsuarios()"
+                       onfocus="abrirDropdown('lista-usuarios')"
+                       onblur="fecharDropdown('lista-usuarios')">
 
-                <label>Usuário</label>
-                <select name="usuario" id="selectUsuario" class="input" required>
-                    <option value="">Selecione</option>
+                <div id="lista-usuarios" class="livro-dropdown dropdown-oculto">
                     {% for usuario in usuarios %}
-                        <option value="{{ usuario.id }}">
-                            {{ usuario.nome }} {{ usuario.sobrenome }}
-                        </option>
+                    <div class="usuario-option"
+                         data-id="{{ usuario.id }}"
+                         data-nome="{{ usuario.nome }} {{ usuario.sobrenome }}"
+                         data-email="{{ usuario.email }}"
+                         data-tipo="{{ usuario.tipo }}"
+                         data-search="{{ usuario.nome|lower }} {{ usuario.sobrenome|lower }} {{ usuario.email|lower }}"
+                         onclick="selecionarUsuario(this)">
+                        <div class="livro-titulo">{{ usuario.nome }} {{ usuario.sobrenome }}</div>
+                        <div class="livro-meta">
+                            <span>{{ usuario.email }}</span>
+                            <span class="{% if usuario.tipo == 'professor' %}badge-ok{% else %}badge-low{% endif %}">
+                                {{ usuario.tipo|capitalize }}
+                            </span>
+                        </div>
+                    </div>
                     {% endfor %}
-                </select>
+                </div>
 
+                <input type="hidden" name="usuario" id="usuario-selecionado" required>
+
+                <!-- DETALHES DO USUÁRIO -->
+                <div class="detalhe-box" id="detalhe-usuario">
+                    <div class="detalhe-header">
+                        <span class="detalhe-icon">👤</span>
+                        <span class="detalhe-titulo" id="det-usuario-nome">—</span>
+                    </div>
+                    <div class="detalhe-grid">
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Email</span>
+                            <span class="detalhe-valor" id="det-usuario-email">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Tipo</span>
+                            <span class="detalhe-valor" id="det-usuario-tipo">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Prazo de devolução</span>
+                            <span class="detalhe-valor" id="det-usuario-prazo">—</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+
             <div class="right">
+                <label>Buscar Livro</label>
+                <input type="text" id="search-livro" class="input" placeholder="Título, autor ou ISBN..."
+                       oninput="filtrarLivros()"
+                       onfocus="abrirDropdown('lista-livros')"
+                       onblur="fecharDropdown('lista-livros')">
 
-                <label>Livro</label>
-                <select name="livro" class="input" required>
-                    <option value="">Selecione um livro</option>
+                <div id="lista-livros" class="livro-dropdown dropdown-oculto">
                     {% for livro in livros %}
-                        <option value="{{ livro.id }}">
-                            {{ livro.titulo }}
-                        </option>
+                    <div class="livro-option"
+                         data-id="{{ livro.id }}"
+                         data-titulo="{{ livro.titulo }}"
+                         data-autor="{{ livro.autor }}"
+                         data-isbn="{{ livro.isbn }}"
+                         data-editora="{{ livro.editora }}"
+                         data-ano="{{ livro.ano }}"
+                         data-categoria="{{ livro.categoria }}"
+                         data-quantidade="{{ livro.quantidade }}"
+                         data-disponiveis="{{ livro.disponiveis }}"
+                         data-search="{{ livro.titulo|lower }} {{ livro.autor|lower }} {{ livro.isbn }}"
+                         onclick="selecionarLivro(this)">
+                        <div class="livro-titulo">{{ livro.titulo }}</div>
+                        <div class="livro-meta">
+                            <span>{{ livro.autor }}</span>
+                            <span>{{ livro.isbn }}</span>
+                            <span>{{ livro.editora }} · {{ livro.ano }}</span>
+                            <span>{{ livro.categoria }}</span>
+                            <span class="{% if livro.disponiveis == 0 %}badge-zero{% elif livro.disponiveis <= 1 %}badge-low{% else %}badge-ok{% endif %}">
+                                {{ livro.disponiveis }}/{{ livro.quantidade }} disponíveis
+                            </span>
+                        </div>
+                    </div>
                     {% endfor %}
-                </select>
-                
+                </div>
+
+                <input type="hidden" name="livro" id="livro-selecionado" required>
 
 
+                <div class="detalhe-box" id="detalhe-livro">
+                    <div class="detalhe-header">
+                        <span class="detalhe-icon">📖</span>
+                        <span class="detalhe-titulo" id="det-livro-titulo">—</span>
+                    </div>
+                    <div class="detalhe-grid">
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Autor</span>
+                            <span class="detalhe-valor" id="det-livro-autor">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">ISBN</span>
+                            <span class="detalhe-valor" id="det-livro-isbn">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Editora</span>
+                            <span class="detalhe-valor" id="det-livro-editora">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Categoria</span>
+                            <span class="detalhe-valor" id="det-livro-categoria">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Ano</span>
+                            <span class="detalhe-valor" id="det-livro-ano">—</span>
+                        </div>
+                        <div class="detalhe-field">
+                            <span class="detalhe-label">Disponibilidade</span>
+                            <span class="detalhe-valor" id="det-livro-disp">—</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="full">
-                <p> apartir do momento do emprestimo o prazo de devolução para alunos é de 7 dias e para professores 15 dias</p>
-                <button type="submit">
-                    Registrar Empréstimo
-                </button>
+                <p id="prazo-devolucao">
+                    Selecione um usuário para calcular a data de devolução.
+                </p>
+                <button type="submit">Registrar Empréstimo</button>
             </div>
 
         </form>
 
         <a href="/menu" class="voltar">← Voltar</a>
-
     </div>
-
 </div>
 
 <script>
-const input = document.getElementById("buscaUsuario");
-const select = document.getElementById("selectUsuario");
-
-input.addEventListener("input", function () {
-    const filtro = input.value.toLowerCase();
-
-    for (let option of select.options) {
-        const texto = option.text.toLowerCase();
-        option.style.display = texto.includes(filtro) || option.value === "" ? "" : "none";
+    function abrirDropdown(id) {
+        document.getElementById(id).classList.remove('dropdown-oculto');
     }
-});
+
+    function fecharDropdown(id) {
+        setTimeout(() => {
+            document.getElementById(id).classList.add('dropdown-oculto');
+        }, 200);
+    }
+
+    function filtrarLivros() {
+        const q = document.getElementById('search-livro').value.toLowerCase();
+        document.querySelectorAll('.livro-option').forEach(el => {
+            el.style.display = el.dataset.search.includes(q) ? '' : 'none';
+        });
+    }
+
+    function selecionarLivro(el) {
+        document.querySelectorAll('.livro-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('livro-selecionado').value = el.dataset.id;
+        document.getElementById('search-livro').value = el.dataset.titulo;
+
+        const disp = parseInt(el.dataset.disponiveis);
+        const qtd = parseInt(el.dataset.quantidade);
+
+        document.getElementById('det-livro-titulo').textContent = el.dataset.titulo;
+        document.getElementById('det-livro-autor').textContent = el.dataset.autor;
+        document.getElementById('det-livro-isbn').textContent = el.dataset.isbn;
+        document.getElementById('det-livro-editora').textContent = el.dataset.editora;
+        document.getElementById('det-livro-categoria').textContent = el.dataset.categoria;
+        document.getElementById('det-livro-ano').textContent = el.dataset.ano;
+
+        const dispEl = document.getElementById('det-livro-disp');
+        dispEl.textContent = `${disp}/${qtd} disponíveis`;
+        dispEl.className = 'detalhe-valor ' + (disp === 0 ? 'badge-zero' : disp <= 1 ? 'badge-low' : 'badge-ok');
+
+        document.getElementById('detalhe-livro').classList.add('ativo');
+    }
+
+    function filtrarUsuarios() {
+        const q = document.getElementById('search-usuario').value.toLowerCase();
+        document.querySelectorAll('.usuario-option').forEach(el => {
+            el.style.display = el.dataset.search.includes(q) ? '' : 'none';
+        });
+    }
+
+    function selecionarUsuario(el) {
+        document.querySelectorAll('.usuario-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('usuario-selecionado').value = el.dataset.id;
+        document.getElementById('search-usuario').value = el.dataset.nome;
+
+        const tipo = el.dataset.tipo;
+        const dias = tipo === 'professor' ? 15 : 7;
+        const prazo = `${dias} dias`;
+
+        let hoje = new Date();
+        let devolucao = new Date();
+        devolucao.setDate(hoje.getDate() + dias);
+
+        document.getElementById('prazo-devolucao').innerHTML =
+            `Pegou em: ${hoje.toLocaleDateString('pt-BR')}<br>
+         Devolução: ${devolucao.toLocaleDateString('pt-BR')}`;
+
+        document.getElementById('det-usuario-nome').textContent = el.dataset.nome;
+        document.getElementById('det-usuario-email').textContent = el.dataset.email;
+
+        const tipoEl = document.getElementById('det-usuario-tipo');
+        tipoEl.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+        tipoEl.className = 'detalhe-valor ' + (tipo === 'professor' ? 'badge-ok' : 'badge-low');
+
+        document.getElementById('det-usuario-prazo').textContent = prazo;
+        document.getElementById('detalhe-usuario').classList.add('ativo');
+    }
+
+
 </script>
 
 {% endblock %}
