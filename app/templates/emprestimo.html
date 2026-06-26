@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/emprestimo.css') }}">
 
 <div class="page">
     <div class="card-emprestimo">
@@ -8,7 +9,6 @@
 
         <form method="POST" class="form-grid">
 
-            <!-- COLUNA ESQUERDA: USUÁRIO -->
             <div class="left">
                 <label>Buscar Usuário</label>
                 <input type="text" id="search-usuario" class="input" placeholder="Nome ou email..."
@@ -38,7 +38,6 @@
 
                 <input type="hidden" name="usuario" id="usuario-selecionado" required>
 
-                <!-- DETALHES DO USUÁRIO -->
                 <div class="detalhe-box" id="detalhe-usuario">
                     <div class="detalhe-header">
                         <span class="detalhe-icon">👤</span>

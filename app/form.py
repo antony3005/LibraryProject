@@ -20,7 +20,8 @@ class CadastroLivro(FlaskForm):
     isbn = StringField("ISBN", validators=[DataRequired()])
     titulo = StringField("Titulo", validators=[DataRequired()])
     autor = StringField("Autor", validators=[DataRequired()])
-    categoria = StringField("Categoria", validators=[DataRequired()])
+    categoria = SelectField("Categoria", choices=[])
+
     editora = StringField("Editora", validators=[DataRequired()])
 
     ano = IntegerField(
@@ -38,7 +39,7 @@ class CadastroLivro(FlaskForm):
             NumberRange(min=1, message="Quantidade deve ser maior que 0")
         ]
     )
-
+    nova_categoria = SubmitField("Nova Categoria")
     submit = SubmitField("Enviar")
 
 
@@ -80,3 +81,5 @@ class LoginForm(FlaskForm):
     senha = PasswordField("Senha", validators=[DataRequired(), Length(min=8)])
     submit = SubmitField("Enviar")
 
+class CategoriaForm(FlaskForm):
+    nome = StringField("Nome da categoria", validators=[DataRequired()])

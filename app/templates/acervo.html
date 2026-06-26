@@ -1,102 +1,71 @@
 {% extends "base.html" %}
-
 {% block content %}
-<form class="row g-2 mb-3" method="GET">
-
-    <!-- Busca -->
-    <div class="col-md-4">
-        <input
-                type="text"
-                class="form-control"
-                name="busca"
-                placeholder="Título, autor ou editora..."
-                value="{{ request.args.get('busca', '') }}"
-        >
-    </div>
-
-    <!-- Disponibilidade -->
-    <div class="col-md-2">
-        <select class="form-select" name="status">
-            <option value="">Todos</option>
-            <option value="disponivel">Disponível</option>
-            <option value="emprestado">Emprestado</option>
-        </select>
-    </div>
-
-    <!-- Ordenação -->
-    <div class="col-md-3">
-        <select class="form-select" name="ordenar">
-            <option value="titulo">Título (A-Z)</option>
-            <option value="autor">Autor</option>
-            <option value="editora">Editora</option>
-            <option value="novo">Mais recentes</option>
-            <option value="antigo">Mais antigos</option>
-        </select>
-    </div>
-
-    <!-- Botões -->
-    <div class="col-md-3 d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">
-            Buscar
-        </button>
-
-
-    </div>
-
-</form>
-
-<h2 class="mb-4">📚 Acervo de Livros</h2>
-
-<div class="row">
-
-    {% for livro in livros %}
-
-    <div class="col-md-4 mb-4">
-
-        <div class="card text-bg-dark shadow-lg h-100">
-
-            <div class="card-body">
-
-                <h5 class="card-title">
-                    {{ livro.titulo }}
-                </h5>
-
-                <p class="card-text">
-                    <strong>Autor:</strong> {{ livro.autor }}<br>
-                    <strong>Categoria:</strong> {{ livro.categoria }}<br>
-                    <strong>Editora:</strong> {{ livro.editora }}<br>
-                    <strong>Ano:</strong> {{ livro.ano }}<br>
-                    <strong>Quantidade:</strong> {{ livro.quantidade }}
-                </p>
-
-            </div>
-            {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}
-            <div class="card-footer d-flex justify-content-between">
-
-                <a href="/editar_livro/{{ livro.id }}" class="btn btn-warning btn-sm">
-                    Editar
-                </a>
-
-                <a href="/excluir_livro/{{ livro.id }}" class="btn btn-danger btn-sm"
-                   onclick="return confirm('Tem certeza que deseja excluir este livro?')">
-                    Excluir
-                </a>
-
-            </div>
-            {% endif %}
-
+<link rel="stylesheet" href="{{ url_for('static', filename='css/acervo.css') }}">
+<div class="container">
+    <form class="row g-2 mb-3" method="GET">
+        <div class="col-md-4">
+            <input
+                    type="text"
+                    class="form-control"
+                    name="busca"
+                    placeholder="Título, autor ou editora..."
+                    value="{{ request.args.get('busca', '') }}"
+            >
         </div>
-
+        <div class="col-md-2">
+            <select class="form-select" name="status">
+                <option value="">Todos</option>
+                <option value="disponivel">Disponível</option>
+                <option value="emprestado">Emprestado</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" name="ordenar">
+                <option value="titulo">Título (A-Z)</option>
+                <option value="autor">Autor</option>
+                <option value="editora">Editora</option>
+                <option value="novo">Mais recentes</option>
+                <option value="antigo">Mais antigos</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">
+                Buscar
+            </button>
+        </div>
+    </form>
+    <h2 class="mb-4">📚 Acervo de Livros</h2>
+    <div class="row">
+        {% for livro in livros %}
+        <div class="col-md-4 mb-4">
+            <div class="card text-bg-dark shadow-lg h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ livro.titulo }}</h5>
+                    <p class="card-text">
+                        <strong>Autor:</strong> {{ livro.autor }}<br>
+                        <strong>Categoria:</strong> {{ livro.categoria }}<br>
+                        <strong>Editora:</strong> {{ livro.editora }}<br>
+                        <strong>Ano:</strong> {{ livro.ano }}<br>
+                        <strong>Quantidade:</strong> {{ livro.quantidade }}
+                    </p>
+                </div>
+                {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="/editar_livro/{{ livro.id }}" class="btn btn-warning btn-sm">Editar</a>
+                    <a href="/excluir_livro/{{ livro.id }}" class="btn btn-danger btn-sm"
+                       onclick="return confirm('Tem certeza que deseja excluir este livro?')">
+                        Excluir
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
-
-    {% endfor %}
-
 </div>
-
 {% if not livros %}
 <div class="alert alert-info text-center">
     Nenhum livro cadastrado ainda.
 </div>
 {% endif %}
-
 {% endblock %}

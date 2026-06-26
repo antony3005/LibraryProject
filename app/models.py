@@ -30,22 +30,13 @@ class Usuario(db.Model, UserMixin):
         lazy=True
     )
 
-    def calcular_data_devolucao(self, perfil: PerfilEnum):
-        hoje = datetime.now()
-
-        if perfil == "ALUNO":
-            return hoje + timedelta(days=7)
-        elif perfil == "PROFESSOR":
-            return hoje + timedelta(days=15)
-        else:
-            return hoje + timedelta(days=7)
-
     def set_password(self, password):
         self.senha = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.senha, password)
-
+def __repr__(self):
+    return f"<Usuario {self.id} - {self.nome} {self.sobrenome} - {self.email}>"
 
 class Livro(db.Model):
     __tablename__ = "livro"
@@ -54,17 +45,24 @@ class Livro(db.Model):
     isbn = db.Column(db.String(20), unique=True)
     titulo = db.Column(db.String(200))
     autor = db.Column(db.String(200))
-    categoria = db.Column(db.String(100))
     editora = db.Column(db.String(100))
     ano = db.Column(db.Integer)
     quantidade = db.Column(db.Integer)
     disponiveis = db.Column(db.Integer)
+    categoria_id = db.Column(
+        db.Integer,
+        db.ForeignKey("categoria.id")
+    )
 
     emprestimos = db.relationship(
         'Emprestimo',
         backref='livro',
         lazy=True
     )
+
+    def __repr__(self):
+        return f"<Livro {self.id} - {self.titulo} ({self.autor})>"
+
 
 
 class Emprestimo(db.Model):
@@ -100,3 +98,19 @@ class BookSuggestion(db.Model):
     titulo = db.Column(db.String(200))
     autor = db.Column(db.String(100))
     professor = db.Column(db.String(100))
+
+
+class Categoria(db.Model):
+    __tablename__ = "categoria"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+
+    livros = db.relationship(
+        "Livro",
+        backref="categoria",
+        lazy=True
+    )
+
+    def __repr__(self):
+        return f"{self.nome}"

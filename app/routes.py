@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from functools import wraps
 
 from flask import render_template, request, redirect, url_for, abort
@@ -5,8 +6,8 @@ from flask_login import current_user, login_user, login_required, logout_user
 from sqlalchemy import or_
 
 from app import app, db
-from app.form import CadastroUsuario, CadastroLivro, EditarLivro, LoginForm
-from app.models import Livro, Emprestimo, Usuario, PerfilEnum
+from app.form import CadastroUsuario, CadastroLivro, EditarLivro, LoginForm, CategoriaForm
+from app.models import Livro, Emprestimo, Usuario, PerfilEnum, Categoria
 
 
 @app.route('/')
@@ -95,7 +96,7 @@ def acervo():
         query = query.order_by(Livro.editora.asc())
 
     livros = query.all()
-
+    categoria = Categoria.query.filter_by()
     return render_template(
         'acervo.html',
         livros=livros
@@ -159,8 +160,15 @@ def emprestimo():
         usuario_id = request.form['usuario']
         livro_id = request.form['livro']
 
+        usuario = Usuario.query.get_or_404(usuario_id)
         livro = Livro.query.get_or_404(livro_id)
-
+        dias = 0
+        if usuario.perfil == PerfilEnum.ALUNO:
+            dias = 7
+        elif usuario.perfil == PerfilEnum.PROFESSOR:
+            dias = 15
+        else:
+            dias = 30
         if livro.disponiveis is None:
             livro.disponiveis = livro.quantidade
 
@@ -168,8 +176,10 @@ def emprestimo():
             return "Não há exemplares disponíveis."
 
         novo_emprestimo = Emprestimo(
-            usuario_id=int(usuario_id),
-            livro_id=int(livro_id)
+            usuario_id=int(usuario.id),
+            livro_id=int(livro_id),
+            data_emprestimo=date.today(),
+            data_devolucao=date.today() + timedelta(days=dias)
         )
 
         livro.disponiveis -= 1
@@ -192,13 +202,18 @@ def emprestimo():
 @perfil_requerido(PerfilEnum.ADMIN)
 def cadastrar_livro():
     form = CadastroLivro()
+    form_categoria = CategoriaForm()
+
+    categoria = Categoria.query.all()
+
+    form.categoria.choices = [(c.id, c.nome) for c in categoria]
 
     if form.validate_on_submit():
         livro = Livro(
             isbn=form.isbn.data,
             titulo=form.titulo.data,
             autor=form.autor.data,
-            categoria=form.categoria.data,
+            categoria_id=form.categoria.data,
             editora=form.editora.data,
             ano=form.ano.data,
             quantidade=form.quantidade.data,
@@ -209,7 +224,7 @@ def cadastrar_livro():
         db.session.commit()
         return redirect(url_for('acervo'))
 
-    return render_template('cadastrar_livro.html', form=form)
+    return render_template('cadastrar_livro.html', form=form, form_categoria=form_categoria)
 
 
 @app.route("/cadastro", methods=["GET", "POST"])
@@ -270,4 +285,29 @@ def professores():
 @login_required
 @perfil_requerido(PerfilEnum.ADMIN)
 def relatorio():
-    return render_template('relatorio.html')
+    total_livros = Livro.query.count()
+    emprestimo = Emprestimo.query.filter_by(devolucao=False)
+    total_emprestimos = emprestimo.count()
+    total_categorias = Categoria.query.count()
+
+    return render_template(
+        'relatorio.html',
+        total_livros=total_livros,
+        total_emprestimos=total_emprestimos,
+        total_categorias=total_categorias,
+        emprestimos=emprestimo
+    )
+
+
+@app.route("/categoria/nova", methods=["POST"])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def nova_categoria():
+    nome = request.form.get("nome")
+
+    if nome:
+        categoria = Categoria(nome=nome.capitalize())
+        db.session.add(categoria)
+        db.session.commit()
+
+    return redirect(url_for("cadastrar_livro"))

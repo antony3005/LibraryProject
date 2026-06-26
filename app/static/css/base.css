@@ -1,8 +1,22 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI', sans-serif;
+}
+
 body {
-    background: linear-gradient(135deg, #0f172a, #1e3a8a);
     min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
     color: white;
 }
+.page-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+}
+
 nav {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
