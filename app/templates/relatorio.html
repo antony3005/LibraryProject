@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorio.css') }}">
+<div class="container mt-4">
+    <h1><i class="fa-solid fa-chart-bar"></i>
+ Relatório Estatístico</h1>
+    <p class="text-muted">Visão geral do acervo da biblioteca</p>
+
+    <div class="cards mt-4">
+        <div class="card">
+            <h2>{{ total_emprestimos }}</h2>
+            <p>Empréstimos Ativos</p>
+        </div>
+        <div class="card">
+            <h2>{{ livros_por_categoria|length }}</h2>
+            <p>Categorias</p>
+        </div>
+        <div class="card bg-danger">
+            <h2>{{ atrasados|length }}</h2>
+            <p>Em Atraso</p>
+        </div>
+    </div>
+
+    <div class="table-box mt-4">
+        <h3> Livros por Categoria</h3>
+        <table class="table table-dark table-hover table-striped">
+            <thead>
+                <tr><th>Categoria</th><th>Total de Livros</th></tr>
+            </thead>
+            <tbody>
+                {% for cat in livros_por_categoria %}
+                <tr>
+                    <td>{{ cat.nome }}</td>
+                    <td>{{ cat.total }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" class="text-center">Nenhuma categoria cadastrada</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-box mt-4">
+        <h3>📚 Empréstimos Ativos</h3>
+        <table class="table table-dark table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Perfil</th>
+                    <th>Livro</th>
+                    <th>Devolução</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in emprestimos %}
+                <tr class="{% if emp.data_devolucao and emp.data_devolucao < hoje %}table-danger{% endif %}">
+                    <td>{{ emp.usuario.nome }} {{ emp.usuario.sobrenome }}</td>
+                    <td>{{ emp.usuario.perfil.value|capitalize }}</td>
+                    <td>{{ emp.livro.titulo }}</td>
+                    <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') if emp.data_devolucao else '—' }}</td>
+                    <td>
+                        {% if emp.data_devolucao and emp.data_devolucao < hoje %}
+                            <span class="badge bg-danger">⚠️ Atrasado</span>
+                        {% else %}
+                            <span class="badge bg-success">✅ Em dia</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('devolver', id=emp.id) }}"
+                           class="btn btn-sm btn-outline-light"
+                           onclick="return confirm('Confirmar devolução?')">
+                            Devolver
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center">Nenhum empréstimo ativo</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if atrasados %}
+    <div class="table-box mt-4">
+        <h3>⚠️ Usuários com Livros em Atraso</h3>
+        <table class="table table-dark table-hover table-striped">
+            <thead>
+                <tr><th>Usuário</th><th>E-mail</th><th>Livro</th><th>Venceu em</th><th>Dias em atraso</th></tr>
+            </thead>
+            <tbody>
+                {% for emp in atrasados %}
+                <tr>
+                    <td>{{ emp.usuario.nome }} {{ emp.usuario.sobrenome }}</td>
+                    <td>{{ emp.usuario.email }}</td>
+                    <td>{{ emp.livro.titulo }}</td>
+                    <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ (hoje - emp.data_devolucao).days }} dia(s)</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if sugestoes %}
+    <div class="table-box mt-4">
+        <h3>💡 Sugestões de Aquisição</h3>
+        <table class="table table-dark table-hover table-striped">
+            <thead>
+                <tr><th>Título</th><th>Autor</th><th>Solicitante</th></tr>
+            </thead>
+            <tbody>
+                {% for s in sugestoes %}
+                <tr>
+                    <td>{{ s.titulo }}</td>
+                    <td>{{ s.autor }}</td>
+                    <td>{{ s.professor.nome }} {{ s.professor.sobrenome }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
