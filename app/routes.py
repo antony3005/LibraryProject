@@ -390,6 +390,9 @@ def relatorio():
     # Carrega o livro junto para evitar erro se livro foi excluído
     emprestimos_ativos = Emprestimo.query.options(joinedload(Emprestimo.livro)) \
         .filter_by(devolucao=False).all()
+    
+    historico_emprestimos = Emprestimo.query.options(joinedload(Emprestimo.livro)) \
+        .filter_by(devolucao=True).order_by(Emprestimo.id.desc()).all()
 
     total_emprestimos = len(emprestimos_ativos)
     atrasados = [e for e in emprestimos_ativos if e.data_devolucao and e.data_devolucao < hoje]
@@ -400,6 +403,7 @@ def relatorio():
         livros_por_categoria=livros_por_categoria,
         total_emprestimos=total_emprestimos,
         emprestimos=emprestimos_ativos,
+        historico=historico_emprestimos,
         atrasados=atrasados,
         sugestoes=sugestoes,
         hoje=hoje
