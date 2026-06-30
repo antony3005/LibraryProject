@@ -382,22 +382,38 @@ def painel_professor():
 def relatorio():
     hoje = datetime.utcnow()
 
+    # 1. Captura o termo de busca digitado no input (name="busca")
+    busca = request.args.get('busca', '').strip()
+
     categorias = Categoria.query.all()
     livros_por_categoria = [
         {'nome': c.nome, 'total': len(c.livros)} for c in categorias
     ]
 
-    # Carrega o livro junto para evitar erro se livro foi excluído
-    emprestimos_ativos = Emprestimo.query.options(joinedload(Emprestimo.livro)) \
-        .filter_by(devolucao=False).all()
-    
-    historico_emprestimos = Emprestimo.query.options(joinedload(Emprestimo.livro)) \
-        .filter_by(devolucao=True).order_by(Emprestimo.id.desc()).all()
+    # 2. Cria as queries base para Ativos e Histórico
+    query_ativos = Emprestimo.query.options(joinedload(Emprestimo.livro), joinedload(Emprestimo.usuario)).filter_by(devolucao=False)
+    query_historico = Emprestimo.query.options(joinedload(Emprestimo.livro), joinedload(Emprestimo.usuario)).filter_by(devolucao=True)
+
+    # 3. Se o usuário digitou algo na busca, aplica os filtros relacionais
+    if busca:
+        filtro_pesquisa = or_(
+            Usuario.nome.ilike(f'%{busca}%'),
+            Usuario.sobrenome.ilike(f'%{busca}%'),
+            Livro.titulo.ilike(f'%{busca}%')
+        )
+        # É necessário dar .join() explicitamente nas tabelas para que o filtro funcione
+        query_ativos = query_ativos.join(Emprestimo.usuario).join(Emprestimo.livro).filter(filtro_pesquisa)
+        query_historico = query_historico.join(Emprestimo.usuario).join(Emprestimo.livro).filter(filtro_pesquisa)
+
+    # 4. Executa as queries com os filtros aplicados (se houverem)
+    emprestimos_ativos = query_ativos.all()
+    historico_emprestimos = query_historico.order_by(Emprestimo.id.desc()).all()
 
     total_emprestimos = len(emprestimos_ativos)
     atrasados = [e for e in emprestimos_ativos if e.data_devolucao and e.data_devolucao < hoje]
     sugestoes = BookSuggestion.query.all()
 
+    # 5. Retorna os dados, incluindo a variável 'busca' para manter o texto no input
     return render_template(
         'relatorio.html',
         livros_por_categoria=livros_por_categoria,
@@ -406,5 +422,7 @@ def relatorio():
         historico=historico_emprestimos,
         atrasados=atrasados,
         sugestoes=sugestoes,
-        hoje=hoje
+        hoje=hoje,
+        busca=busca
     )
+
