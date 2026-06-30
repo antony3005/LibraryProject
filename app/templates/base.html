@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiblioTech</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+</head>
+<body>
+<nav>
+    <div class="logo">
+        <a href="{{ url_for('acervo') }}">📚 BiblioTech</a>
+    </div>
+    <div class="links">
+        <a href="{{ url_for('acervo') }}">Acervo</a>
+        {% if current_user.is_authenticated %}
+            {% if current_user.perfil.value == 'admin' %}
+                <a href="{{ url_for('menu') }}">Menu Admin</a>
+                <a href="{{ url_for('emprestimo') }}">Empréstimos</a>
+                <a href="{{ url_for('relatorio') }}">Relatório</a>
+                <a href="{{ url_for('cadastro') }}">Usuários</a>
+            {% elif current_user.perfil.value == 'professor' %}
+                <a href="{{ url_for('painel_professor') }}">Meu Painel</a>
+            {% else %}
+                <a href="{{ url_for('painel_aluno') }}">Meu Painel</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Sair ({{ current_user.nome }})</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+{% block content %}{% endblock %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

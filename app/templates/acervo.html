@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/acervo.css') }}">
+<div class="container mt-4">
+    <form class="row g-2 mb-4" method="GET">
+        <div class="col-md-4">
+            <input type="text" class="form-control" name="busca"
+                   placeholder="Título, autor ou editora..."
+                   value="{{ busca }}">
+        </div>
+        <div class="col-md-2">
+            <select class="form-select" name="categoria">
+                <option value="">Todas as categorias</option>
+                {% for c in categorias %}
+                <option value="{{ c.id }}" {% if categoria_id|string == c.id|string %}selected{% endif %}>
+                    {{ c.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" name="ordenar">
+                <option value="titulo" {% if ordenar=='titulo' %}selected{% endif %}>Título (A-Z)</option>
+                <option value="autor" {% if ordenar=='autor' %}selected{% endif %}>Autor</option>
+                <option value="editora" {% if ordenar=='editora' %}selected{% endif %}>Editora</option>
+                <option value="novo" {% if ordenar=='novo' %}selected{% endif %}>Mais recentes</option>
+                <option value="antigo" {% if ordenar=='antigo' %}selected{% endif %}>Mais antigos</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Buscar</button>
+            <a href="{{ url_for('acervo') }}" class="btn btn-secondary">Limpar</a>
+        </div>
+    </form>
+
+    <h2 class="mb-4">📚 Acervo de Livros</h2>
+
+    {% if livros %}
+    <div class="row">
+        {% for livro in livros %}
+        <div class="col-md-4 mb-4">
+            <div class="card text-bg-dark shadow-lg h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ livro.titulo }}</h5>
+                    <p class="card-text">
+                        <strong>Autor:</strong> {{ livro.autor }}<br>
+                        <strong>Categoria:</strong> {{ livro.categoria.nome if livro.categoria else '—' }}<br>
+                        <strong>Editora:</strong> {{ livro.editora }}<br>
+                        <strong>Ano:</strong> {{ livro.ano }}<br>
+                        <strong>ISBN:</strong> {{ livro.isbn }}<br>
+                        <strong>Disponíveis:</strong>
+                        <span class="badge {% if livro.disponiveis == 0 %}bg-danger{% elif livro.disponiveis <= 2 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                            {{ livro.disponiveis }}/{{ livro.quantidade }}
+                        </span>
+                    </p>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('detalhe_livro', id=livro.id) }}" class="btn btn-info btn-sm">Detalhes</a>
+                    {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('editar_livro', id=livro.id) }}" class="btn btn-warning btn-sm">Editar</a>
+                        <a href="{{ url_for('excluir_livro', id=livro.id) }}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('Excluir este livro?')">Excluir</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">Nenhum livro encontrado.</div>
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}
+    <div class="text-center mt-3">
+        <a href="{{ url_for('cadastrar_livro') }}" class="btn btn-success">➕ Cadastrar Livro</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
