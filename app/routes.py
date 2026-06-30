@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from functools import wraps
 
-from flask import render_template, request, redirect, url_for, abort
+from flask import render_template, request, redirect, url_for, abort, flash
 from flask_login import current_user, login_user, login_required, logout_user
 from sqlalchemy import or_
 
@@ -68,7 +68,6 @@ def acervo():
 
     query = Livro.query
 
-    # Busca por título, autor ou editora
     if busca:
         query = query.filter(
             or_(
@@ -160,8 +159,29 @@ def emprestimo():
         usuario_id = request.form['usuario']
         livro_id = request.form['livro']
 
+        if not usuario_id:
+            flash("Selecione um usuário.", "error")
+            return redirect(url_for("emprestimo"))
+
+        if not livro_id:
+            flash("Selecione um livro.", "error")
+            return redirect(url_for("emprestimo"))
+
         usuario = Usuario.query.get_or_404(usuario_id)
         livro = Livro.query.get_or_404(livro_id)
+
+        emprestimos = Emprestimo.query.filter_by(
+            usuario_id=usuario.id,
+            devolucao=False
+        ).count()
+        print("Quantidade:", emprestimos)
+        if emprestimos >= 3 and usuario.perfil == PerfilEnum.ALUNO or emprestimos >= 5 and usuario.perfil == PerfilEnum.PROFESSOR:
+            flash(
+                "Este usuário já possui o limite máximo de 3 livros emprestados.",
+                "error"
+            )
+            return redirect(url_for("emprestimo"))
+        print("rodou aqui ó")
         dias = 0
         if usuario.perfil == PerfilEnum.ALUNO:
             dias = 7
@@ -173,7 +193,11 @@ def emprestimo():
             livro.disponiveis = livro.quantidade
 
         if livro.disponiveis <= 0:
-            return "Não há exemplares disponíveis."
+            flash(
+                f"O livro '{livro.titulo}' não possui exemplares disponíveis.",
+                "error"
+            )
+            return redirect(url_for("emprestimo"))
 
         novo_emprestimo = Emprestimo(
             usuario_id=int(usuario.id),
@@ -222,6 +246,7 @@ def cadastrar_livro():
 
         db.session.add(livro)
         db.session.commit()
+        flash("Livro cadastrado", "success")
         return redirect(url_for('acervo'))
 
     return render_template('cadastrar_livro.html', form=form, form_categoria=form_categoria)
@@ -240,14 +265,6 @@ def cadastro():
     ]
 
     if form.validate_on_submit():
-
-        perfil = form.perfil.data
-        senha = form.senha.data
-
-        if perfil == "admin":
-            if not senha:
-                return "Admin precisa de senha!", 400
-
         user = Usuario(
             nome=form.nome.data,
             sobrenome=form.sobrenome.data,
@@ -260,7 +277,8 @@ def cadastro():
         db.session.add(user)
         db.session.commit()
 
-        return f"Criado: {perfil}"
+        flash("Usuário Cadastrado", "success")
+        return redirect(url_for("cadastro"))
 
     return render_template("cadastro.html", form=form)
 
@@ -279,6 +297,50 @@ def alunos():
 def professores():
     professores = Usuario.query.filter(Usuario.perfil == "PROFESSOR").all()
     return render_template('painel_professor.html', professores=professores)
+
+
+@app.route('/devolver', methods=["GET", "POST"])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def devolver():
+    emprestimos = Emprestimo.query.filter_by(devolucao=False).all()
+    return render_template('devolver_livro.html', emprestimos=emprestimos)
+
+
+@app.route('/historico')
+@login_required
+def historico_aluno():
+    emprestimos = Emprestimo.query.filter_by(
+        usuario_id=current_user.id
+    ).order_by(
+        Emprestimo.data_emprestimo.desc()
+    ).all()
+
+    user = current_user.perfil
+    hoje = date.today()
+
+    return render_template(
+        'historico_aluno.html',
+        emprestimos=emprestimos,
+        hoje=hoje,
+        user=user
+    )
+
+
+@app.route('/devolver/<int:emprestimo_id>')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def devolverid(emprestimo_id):
+    emprestimo = Emprestimo.query.get_or_404(emprestimo_id)
+
+    emprestimo.devolucao = True
+    emprestimo.livro.disponiveis += 1
+
+    db.session.commit()
+
+    flash("Livro devolvido com sucesso!", "success")
+
+    return redirect(url_for('devolver'))
 
 
 @app.route('/relatorio')

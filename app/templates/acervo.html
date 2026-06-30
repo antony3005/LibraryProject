@@ -46,7 +46,7 @@
                         <strong>Categoria:</strong> {{ livro.categoria }}<br>
                         <strong>Editora:</strong> {{ livro.editora }}<br>
                         <strong>Ano:</strong> {{ livro.ano }}<br>
-                        <strong>Quantidade:</strong> {{ livro.quantidade }}
+                        <strong>Quantidade:</strong> {{ livro.disponiveis }}
                     </p>
                 </div>
                 {% if current_user.is_authenticated and current_user.perfil.value == 'admin' %}

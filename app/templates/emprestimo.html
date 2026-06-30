@@ -22,7 +22,7 @@
                          data-id="{{ usuario.id }}"
                          data-nome="{{ usuario.nome }} {{ usuario.sobrenome }}"
                          data-email="{{ usuario.email }}"
-                         data-tipo="{{ usuario.tipo }}"
+                         data-tipo="{{ usuario.perfil.value }}"
                          data-search="{{ usuario.nome|lower }} {{ usuario.sobrenome|lower }} {{ usuario.email|lower }}"
                          onclick="selecionarUsuario(this)">
                         <div class="livro-titulo">{{ usuario.nome }} {{ usuario.sobrenome }}</div>
@@ -201,6 +201,7 @@
         document.getElementById('search-usuario').value = el.dataset.nome;
 
         const tipo = el.dataset.tipo;
+        console.log(el);
         const dias = tipo === 'professor' ? 15 : 7;
         const prazo = `${dias} dias`;
 
