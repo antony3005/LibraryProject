@@ -1,44 +1,41 @@
 {% extends "base.html" %}
+
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/painel_aluno.css') }}">
-<div class="container mt-4">
-    <h2 class="mb-3">📚 Meu Painel — {{ current_user.nome }} {{ current_user.sobrenome }}</h2>
-    <p class="text-muted">Perfil: Aluno | Limite: 3 livros | Prazo: 7 dias</p>
 
-    {% if emprestimos %}
-    <div class="table-responsive">
-        <table class="table table-dark table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>Livro</th>
-                    <th>Data do Empréstimo</th>
-                    <th>Devolução Prevista</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for emp in emprestimos %}
-                <tr class="{% if emp.data_devolucao and emp.data_devolucao < hoje %}table-danger{% endif %}">
-                    <td>{{ emp.livro.titulo }}</td>
-                    <td>{{ emp.data_emprestimo.strftime('%d/%m/%Y') if emp.data_emprestimo else '—' }}</td>
-                    <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') if emp.data_devolucao else '—' }}</td>
-                    <td>
-                        {% if emp.data_devolucao and emp.data_devolucao < hoje %}
-                            <span class="badge bg-danger">⚠️ Atrasado</span>
-                        {% else %}
-                            <span class="badge bg-success">✅ Em dia</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <p class="mt-2 text-muted">{{ emprestimos|length }}/3 livros em uso</p>
-    {% else %}
-    <div class="alert alert-info">Você não possui livros emprestados no momento.</div>
-    {% endif %}
+<h2 class="mb-3">Lista de Alunos</h2>
 
-    <a href="{{ url_for('acervo') }}" class="btn btn-primary mt-3">🔍 Ver Acervo</a>
-</div>
+<table class="table table-dark table-hover table-striped">
+
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Sobrenome</th>
+            <th>Email</th>
+            <th>Perfil</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% if alunos %}
+            {% for aluno in alunos %}
+            <tr>
+                <th scope="row">{{ aluno.id }}</th>
+                <td>{{ aluno.nome }}</td>
+                <td>{{ aluno.sobrenome }}</td>
+                <td>{{ aluno.email }}</td>
+                <td>{{ aluno.perfil }}</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="4" class="text-center">
+                    Nenhum aluno cadastrado
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
+
+</table>
+
 {% endblock %}

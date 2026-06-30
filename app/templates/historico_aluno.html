@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-3">Histórico de livros</h2>
+    <table class="table table-dark table-hover table-striped">
+        <thead>
+        <tr>
+            <th>Livro</th>
+            <th>Empréstimo</th>
+            <th>Devolução Prevista</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% if emprestimos %}
+        {% for emprestimo in emprestimos %}
+
+        <tr>
+            <td>{{ emprestimo.livro.titulo }}</td>
+
+            <td>
+                {{ emprestimo.data_emprestimo.strftime('%d/%m/%Y') }}
+            </td>
+
+            <td>
+                {{ emprestimo.data_devolucao.strftime('%d/%m/%Y') }}
+            </td>
+
+            <td>
+
+                {% if emprestimo.devolucao %}
+                <span class="status devolvido">
+                    Devolvido
+                </span>
+
+                {% elif emprestimo.data_devolucao.date() < hoje %}
+                <span class="status atrasado">
+                    Atrasado
+                </span>
+
+                {% else %}
+                <span class="status em-dia">
+                    Em dia
+                </span>
+
+                {% endif %}
+
+            </td>
+
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center">
+                Nenhum emprestimo pendente
+            </td>
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

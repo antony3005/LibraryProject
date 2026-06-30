@@ -1,76 +1,41 @@
 {% extends "base.html" %}
+
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/painel_professor.css') }}">
-<div class="container mt-4">
-    <h2 class="mb-3">🎓 Meu Painel — {{ current_user.nome }} {{ current_user.sobrenome }}</h2>
-    <p class="text-muted">Perfil: Professor | Limite: 5 livros | Prazo: 15 dias</p>
 
-    <h4 class="mt-4">📖 Livros Emprestados</h4>
-    {% if emprestimos %}
-    <div class="table-responsive">
-        <table class="table table-dark table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>Livro</th>
-                    <th>Data do Empréstimo</th>
-                    <th>Devolução Prevista</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for emp in emprestimos %}
-                <tr class="{% if emp.data_devolucao and emp.data_devolucao < hoje %}table-danger{% endif %}">
-                    <td>{{ emp.livro.titulo }}</td>
-                    <td>{{ emp.data_emprestimo.strftime('%d/%m/%Y') if emp.data_emprestimo else '—' }}</td>
-                    <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') if emp.data_devolucao else '—' }}</td>
-                    <td>
-                        {% if emp.data_devolucao and emp.data_devolucao < hoje %}
-                            <span class="badge bg-danger">⚠️ Atrasado</span>
-                        {% else %}
-                            <span class="badge bg-success">✅ Em dia</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <p class="mt-2 text-muted">{{ emprestimos|length }}/5 livros em uso</p>
-    {% else %}
-    <div class="alert alert-info">Você não possui livros emprestados no momento.</div>
-    {% endif %}
+<h2 class="mb-3">Lista de Alunos</h2>
 
-    <hr class="my-4">
+<table class="table table-dark table-hover table-striped">
 
-    <h4>💡 Solicitar Aquisição de Novo Livro</h4>
-    <div class="card text-bg-dark p-4 mb-4" style="max-width:500px;">
-        <form method="POST">
-            {{ form.hidden_tag() }}
-            <div class="mb-3">
-                {{ form.titulo.label(class="form-label") }}
-                {{ form.titulo(class="form-control") }}
-            </div>
-            <div class="mb-3">
-                {{ form.autor.label(class="form-label") }}
-                {{ form.autor(class="form-control") }}
-            </div>
-            <button type="submit" class="btn btn-primary w-100">{{ form.submit.label.text }}</button>
-        </form>
-    </div>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Sobrenome</th>
+            <th>Email</th>
+            <th>Perfil</th>
+        </tr>
+    </thead>
 
-    {% if sugestoes %}
-    <h5>Minhas sugestões enviadas:</h5>
-    <ul class="list-group list-group-flush">
-        {% for s in sugestoes %}
-        <li class="list-group-item bg-transparent text-white">
-            📚 <strong>{{ s.titulo }}</strong> — {{ s.autor }}
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+    <tbody>
+        {% if professores %}
+            {% for professor in professores %}
+            <tr>
+                <th scope="row">{{ professor.id }}</th>
+                <td>{{ professor.nome }}</td>
+                <td>{{ professor.sobrenome }}</td>
+                <td>{{ professor.email }}</td>
+                <td>{{ professor.perfil }}</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="4" class="text-center">
+                    Nenhum professor cadastrado
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
 
-    <div class="mt-4">
-        <a href="{{ url_for('acervo') }}" class="btn btn-primary">🔍 Ver Acervo</a>
-    </div>
-</div>
+</table>
+
 {% endblock %}

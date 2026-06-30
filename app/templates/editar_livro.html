@@ -1,50 +1,55 @@
 {% extends "base.html" %}
+
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/editar_livro.css') }}">
-<div class="page-center">
-    <div class="container">
-        <div class="container-form">
-            <h2>✏️ Editar Livro</h2>
-            <form method="POST" class="mt-4">
-                {{ form.hidden_tag() }}
 
-                <div class="mb-3">
-                    {{ form.titulo.label(class="form-label") }}
-                    {{ form.titulo(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.isbn.label(class="form-label") }}
-                    {{ form.isbn(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.autor.label(class="form-label") }}
-                    {{ form.autor(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.categoria.label(class="form-label") }}
-                    {{ form.categoria(class="form-select") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.editora.label(class="form-label") }}
-                    {{ form.editora(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.ano.label(class="form-label") }}
-                    {{ form.ano(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.quantidade.label(class="form-label") }}
-                    {{ form.quantidade(class="form-control") }}
-                </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    {{ form.submit.label.text }}
-                </button>
-            </form>
-            <div class="mt-3 text-center">
-                <a href="{{ url_for('acervo') }}" class="text-light">← Voltar ao Acervo</a>
+<div class="container">
+    <div class="container-form">
+
+        <h2>Editar</h2>
+
+        <form method="POST" class="mt-4">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.titulo.label(class="form-label") }}
+                {{ form.titulo(class="form-control") }}
             </div>
-        </div>
+
+            <div class="mb-3">
+                {{ form.isbn.label(class="form-label") }}
+                {{ form.isbn(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.autor.label(class="form-label") }}
+                {{ form.autor(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.categoria.label(class="form-label") }}
+                {{ form.categoria(class="form-select", id="perfil") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.editora.label(class="form-label") }}
+                {{ form.editora(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.ano.label(class="form-label") }}
+                {{ form.ano(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                {{ form.quantidade.label(class="form-label") }}
+                {{ form.quantidade(class="form-control") }}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                {{ form.submit.label.text }}
+            </button>
+        </form>
+
     </div>
 </div>
 {% endblock %}

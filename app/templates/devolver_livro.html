@@ -1,42 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorio.css') }}">
 
-<h1>📊 Relatório Estatístico</h1>
-<p>Visão geral do acervo da biblioteca</p>
+<div class="container">
+    <h2>Devoluções</h2>
 
-
-<div class="cards">
-
-    <div class="card">
-        <h2>{{ total_livros }}</h2>
-        <p>Total de Livros</p>
-    </div>
-
-    <div class="card">
-        <h2>{{ total_emprestimos }}</h2>
-        <p>Empréstimos Ativos</p>
-    </div>
-
-    <div class="card">
-        <h2>{{ total_categorias }}</h2>
-        <p>Categorias</p>
-    </div>
-
-</div>
-
-<div class="table-box">
-
-    <h2>📚 Livros Emprestados</h2>
-
+    <input type="text" id="search-usuario" class="input" placeholder="Nome ou email...">
     <table class="table table-dark table-hover table-striped">
         <thead>
         <tr>
+            <th>id</th>
             <th>nome</th>
             <th>Livro</th>
             <th>Data de devolução</th>
             <th>Perfil</th>
+            <th>#</th>
         </tr>
         </thead>
 
@@ -44,12 +22,14 @@
         {% if emprestimos %}
         {% for emprestimo in emprestimos %}
         <tr>
+            <td>{{ emprestimo.id }}</td>
             <td>{{ emprestimo.usuario.nome }} {{ emprestimo.usuario.sobrenome }}</td>
             <td>{{ emprestimo.livro.titulo }}</td>
             {% if emprestimo.data_devolucao is not none %}
             <td>{{ emprestimo.data_devolucao.strftime('%d/%m/%Y') }}</td>
             {% endif %}
             <td>{{ emprestimo.usuario.perfil.value }}</td>
+            <td><a href="/devolver/{{ emprestimo.id }}">Devolver </a></td>
         </tr>
         {% endfor %}
         {% else %}
