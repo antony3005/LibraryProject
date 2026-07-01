@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cadastro_livro.css') }}">
+<div class="page-center">
+    <div class="container">
+        <div class="container-form">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <h2 class="mb-0">➕ Cadastrar Livro</h2>
+                <button type="button" class="btn btn-ai" data-bs-toggle="offcanvas" data-bs-target="#painelIA">
+                    🔍 Buscar automaticamente
+                </button>
+            </div>
+            <form method="POST" class="mt-4" id="formCadastroLivro">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.titulo.label(class="form-label") }}
+                    {{ form.titulo(class="form-control", id="titulo") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.isbn.label(class="form-label") }}
+                    {{ form.isbn(class="form-control", id="isbn") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.autor.label(class="form-label") }}
+                    {{ form.autor(class="form-control", id="autor") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.categoria.label(class="form-label") }}
+                    {{ form.categoria(class="form-select", id="categoria") }}
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#modalCategoria" class="text-info small mt-1 d-block">
+                        + Nova categoria
+                    </a>
+                </div>
+                <div class="mb-3">
+                    {{ form.editora.label(class="form-label") }}
+                    {{ form.editora(class="form-control", id="editora") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.ano.label(class="form-label") }}
+                    {{ form.ano(class="form-control", id="ano") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.quantidade.label(class="form-label") }}
+                    {{ form.quantidade(class="form-control") }}
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">{{ form.submit.label.text }}</button>
+            </form>
+            <div class="mt-3 text-center">
+                <a href="{{ url_for('acervo') }}" class="text-light">← Voltar ao Acervo</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal nova categoria -->
+<div class="modal fade" id="modalCategoria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <form method="POST" action="{{ url_for('nova_categoria') }}">
+                {{ form_categoria.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Categoria</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ form_categoria.nome.label(class="form-label") }}
+                        {{ form_categoria.nome(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Barra lateral - Preenchimento automático -->
+<div class="offcanvas offcanvas-end text-white" tabindex="-1" id="painelIA">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">🔍 Buscar livro automaticamente</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <p class="small text-light-emphasis">
+            Digite o nome do livro e o sistema vai buscar automaticamente autor, editora,
+            ano e ISBN em uma base de dados pública de livros (Open Library).
+        </p>
+        <div class="mb-3">
+            <label for="buscaIATitulo" class="form-label">Nome do livro</label>
+            <input type="text" class="form-control" id="buscaIATitulo" placeholder="Ex: Dom Casmurro">
+        </div>
+        <button type="button" class="btn btn-ai w-100" id="btnBuscarIA">
+            <span id="btnBuscarIATexto">🔍 Pesquisar</span>
+        </button>
+
+        <div id="iaAlerta" class="alert mt-3 d-none" role="alert"></div>
+
+        <div id="iaResultado" class="mt-3 d-none">
+            <hr>
+            <h6>Resultado encontrado</h6>
+            <ul class="list-unstyled small" id="iaResultadoLista"></ul>
+            <button type="button" class="btn btn-success w-100" id="btnAplicarIA">
+                ✅ Preencher formulário
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const btnBuscar = document.getElementById('btnBuscarIA');
+    const btnBuscarTexto = document.getElementById('btnBuscarIATexto');
+    const inputBusca = document.getElementById('buscaIATitulo');
+    const alerta = document.getElementById('iaAlerta');
+    const resultadoBox = document.getElementById('iaResultado');
+    const resultadoLista = document.getElementById('iaResultadoLista');
+    const btnAplicar = document.getElementById('btnAplicarIA');
+
+    let ultimoResultado = null;
+
+    function mostrarAlerta(mensagem, tipo) {
+        alerta.textContent = mensagem;
+        alerta.className = 'alert mt-3 alert-' + tipo;
+    }
+
+    function esconderAlerta() {
+        alerta.className = 'alert mt-3 d-none';
+    }
+
+    async function buscarLivroIA() {
+        const titulo = inputBusca.value.trim();
+        if (!titulo) {
+            mostrarAlerta('Digite o nome do livro para pesquisar.', 'warning');
+            return;
+        }
+
+        esconderAlerta();
+        resultadoBox.classList.add('d-none');
+        btnBuscar.disabled = true;
+        btnBuscarTexto.textContent = '⏳ Pesquisando...';
+
+        try {
+            const resp = await fetch("{{ url_for('buscar_livro_ia') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titulo: titulo })
+            });
+            const dados = await resp.json();
+
+            if (!resp.ok) {
+                mostrarAlerta(dados.erro || 'Não foi possível buscar as informações.', 'danger');
+                return;
+            }
+
+            ultimoResultado = dados;
+
+            resultadoLista.innerHTML = `
+                <li><strong>Título:</strong> ${dados.titulo || '-'}</li>
+                <li><strong>Autor:</strong> ${dados.autor || '-'}</li>
+                <li><strong>Editora:</strong> ${dados.editora || '-'}</li>
+                <li><strong>Ano:</strong> ${dados.ano || '-'}</li>
+                <li><strong>ISBN:</strong> ${dados.isbn || '-'}</li>
+                <li><strong>Categoria sugerida:</strong> ${dados.categoria_nome || '-'}
+                    ${dados.categoria_id ? '' : '<br><span class="text-warning">Categoria não cadastrada ainda — crie-a em "+ Nova categoria" se desejar.</span>'}
+                </li>
+            `;
+            resultadoBox.classList.remove('d-none');
+        } catch (erro) {
+            mostrarAlerta('Erro de conexão ao consultar a base de livros. Tente novamente.', 'danger');
+        } finally {
+            btnBuscar.disabled = false;
+            btnBuscarTexto.textContent = '🔍 Pesquisar';
+        }
+    }
+
+    function aplicarResultado() {
+        if (!ultimoResultado) return;
+
+        const campos = {
+            titulo: ultimoResultado.titulo,
+            isbn: ultimoResultado.isbn,
+            autor: ultimoResultado.autor,
+            editora: ultimoResultado.editora,
+            ano: ultimoResultado.ano
+        };
+
+        Object.keys(campos).forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el && campos[id]) {
+                el.value = campos[id];
+            }
+        });
+
+        if (ultimoResultado.categoria_id) {
+            const selectCategoria = document.getElementById('categoria');
+            if (selectCategoria) {
+                selectCategoria.value = ultimoResultado.categoria_id;
+            }
+        }
+
+        const offcanvasEl = document.getElementById('painelIA');
+        const instancia = bootstrap.Offcanvas.getInstance(offcanvasEl) || new bootstrap.Offcanvas(offcanvasEl);
+        instancia.hide();
+    }
+
+    btnBuscar.addEventListener('click', buscarLivroIA);
+    inputBusca.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarLivroIA();
+        }
+    });
+    btnAplicar.addEventListener('click', aplicarResultado);
+})();
+</script>
+{% endblock %}

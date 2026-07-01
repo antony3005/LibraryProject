@@ -1,0 +1,504 @@
+import json
+import os
+from datetime import date, datetime, timedelta
+from functools import wraps
+
+import requests
+from flask import render_template, request, redirect, url_for, abort, flash, jsonify
+from flask_login import current_user, login_user, login_required, logout_user
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
+
+from app import app, db
+from app.form import CadastroUsuario, CadastroLivro, EditarLivro, LoginForm, CategoriaForm, SugestaoLivroForm
+from app.models import Livro, Emprestimo, Usuario, PerfilEnum, Categoria, BookSuggestion
+
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+def perfil_requerido(*perfis):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                abort(401)
+            if current_user.perfil not in perfis:
+                abort(403)
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+# ── public ───────────────────────────────────────────────────────────────────
+
+@app.route('/')
+def home():
+    return redirect(url_for('acervo'))
+
+
+@app.route('/acervo', methods=['GET'])
+def acervo():
+    busca = request.args.get('busca', '')
+    categoria_id = request.args.get('categoria', '')
+    ordenar = request.args.get('ordenar', 'titulo')
+
+    query = Livro.query
+
+    if busca:
+        query = query.filter(
+            or_(
+                Livro.titulo.ilike(f'%{busca}%'),
+                Livro.autor.ilike(f'%{busca}%'),
+                Livro.editora.ilike(f'%{busca}%')
+            )
+        )
+
+    if categoria_id:
+        query = query.filter(Livro.categoria_id == categoria_id)
+
+    if ordenar == 'titulo':
+        query = query.order_by(Livro.titulo.asc())
+    elif ordenar == 'autor':
+        query = query.order_by(Livro.autor.asc())
+    elif ordenar == 'editora':
+        query = query.order_by(Livro.editora.asc())
+    elif ordenar == 'novo':
+        query = query.order_by(Livro.ano.desc())
+    elif ordenar == 'antigo':
+        query = query.order_by(Livro.ano.asc())
+
+    livros = query.all()
+    categorias = Categoria.query.order_by(Categoria.nome).all()
+
+    return render_template('acervo.html', livros=livros, categorias=categorias,
+                           busca=busca, categoria_id=categoria_id, ordenar=ordenar)
+
+
+@app.route('/livro/<int:id>')
+def detalhe_livro(id):
+    livro = Livro.query.get_or_404(id)
+    return render_template('detalhe_livro.html', livro=livro)
+
+
+# ── auth ─────────────────────────────────────────────────────────────────────
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home_usuario'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = Usuario.query.filter_by(email=form.email.data).first()
+        if user and user.check_password(form.senha.data):
+            login_user(user)
+            return redirect(url_for('home_usuario'))
+        flash('E-mail ou senha inválidos.', 'danger')
+    return render_template("login.html", form=form)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
+@app.route('/inicio')
+@login_required
+def home_usuario():
+    if current_user.perfil == PerfilEnum.ADMIN:
+        return redirect(url_for('menu'))
+    elif current_user.perfil == PerfilEnum.PROFESSOR:
+        return redirect(url_for('painel_professor'))
+    else:
+        return redirect(url_for('painel_aluno'))
+
+
+# ── admin menu ────────────────────────────────────────────────────────────────
+
+@app.route('/menu')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def menu():
+    return render_template('menu.html')
+
+
+# ── cadastro de usuário ───────────────────────────────────────────────────────
+
+@app.route("/cadastro", methods=["GET", "POST"])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def cadastro():
+    form = CadastroUsuario()
+    form.perfil.choices = [
+        ("aluno", "Aluno"),
+        ("professor", "Professor"),
+        ("admin", "Administrador")
+    ]
+    if form.validate_on_submit():
+        if Usuario.query.filter_by(email=form.email.data).first():
+            flash('E-mail já cadastrado.', 'danger')
+            return render_template("cadastro.html", form=form)
+
+        user = Usuario(
+            nome=form.nome.data,
+            sobrenome=form.sobrenome.data,
+            email=form.email.data,
+            perfil=PerfilEnum(form.perfil.data)
+        )
+        user.set_password(form.senha.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Usuário {user.nome} cadastrado com sucesso!', 'success')
+        return redirect(url_for('cadastro'))
+    return render_template("cadastro.html", form=form)
+
+
+# ── IA - preenchimento automático de livro ─────────────────────────────────────
+
+@app.route('/api/buscar_livro_ia', methods=['POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def buscar_livro_ia():
+    dados = request.get_json(silent=True) or {}
+    titulo_busca = (dados.get('titulo') or '').strip()
+
+    if not titulo_busca:
+        return jsonify({'erro': 'Digite o nome do livro para pesquisar.'}), 400
+
+    categorias = Categoria.query.order_by(Categoria.nome).all()
+
+    try:
+        resposta = requests.get(
+            'https://openlibrary.org/search.json',
+            params={'q': titulo_busca, 'limit': 1, 'lang': 'por'},
+            timeout=8
+        )
+        resposta.raise_for_status()
+        resultado = resposta.json()
+    except Exception:
+        return jsonify({
+            'erro': 'Não foi possível consultar a base de livros agora. Tente novamente em instantes.'
+        }), 502
+
+    docs = resultado.get('docs') or []
+    if not docs:
+        return jsonify({'erro': 'Nenhum livro encontrado com esse nome.'}), 404
+
+    doc = docs[0]
+
+    titulo = doc.get('title', '') or ''
+    autores = doc.get('author_name') or []
+    autor = ', '.join(autores)
+    editoras = doc.get('publisher') or []
+    editora = editoras[0] if editoras else ''
+    ano = doc.get('first_publish_year') or ''
+
+    isbns = doc.get('isbn') or []
+    isbn = ''
+    if isbns:
+        isbn_13 = next((i for i in isbns if len(i) == 13), None)
+        isbn = isbn_13 or isbns[0]
+
+    subjects = doc.get('subject') or []
+    categoria_nome_sugerida = ''
+    categoria_id = None
+    if subjects:
+        for assunto in subjects:
+            correspondente = next(
+                (c for c in categorias if c.nome.lower() == assunto.lower()),
+                None
+            )
+            if correspondente:
+                categoria_id = correspondente.id
+                categoria_nome_sugerida = correspondente.nome
+                break
+        if not categoria_id:
+            categoria_nome_sugerida = subjects[0]
+
+    return jsonify({
+        'titulo': titulo,
+        'autor': autor,
+        'editora': editora,
+        'ano': ano,
+        'isbn': isbn,
+        'categoria_id': categoria_id,
+        'categoria_nome': categoria_nome_sugerida
+    })
+
+
+# ── livros ────────────────────────────────────────────────────────────────────
+
+@app.route('/cadastrar_livro', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def cadastrar_livro():
+    form = CadastroLivro()
+    form_categoria = CategoriaForm()
+    categorias = Categoria.query.order_by(Categoria.nome).all()
+    form.categoria.choices = [(c.id, c.nome) for c in categorias]
+
+    if form.validate_on_submit():
+        if Livro.query.filter_by(isbn=form.isbn.data).first():
+            flash('ISBN já cadastrado.', 'danger')
+            return render_template('cadastrar_livro.html', form=form, form_categoria=form_categoria)
+
+        if form.quantidade.data < 0:
+            flash('Quantidade não pode ser negativa.', 'danger')
+            return render_template('cadastrar_livro.html', form=form, form_categoria=form_categoria)
+
+        livro = Livro(
+            isbn=form.isbn.data,
+            titulo=form.titulo.data,
+            autor=form.autor.data,
+            categoria_id=form.categoria.data,
+            editora=form.editora.data,
+            ano=form.ano.data,
+            quantidade=form.quantidade.data,
+            disponiveis=form.quantidade.data
+        )
+        db.session.add(livro)
+        db.session.commit()
+        flash('Livro cadastrado com sucesso!', 'success')
+        return redirect(url_for('acervo'))
+
+    return render_template('cadastrar_livro.html', form=form, form_categoria=form_categoria)
+
+
+@app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def editar_livro(id):
+    livro = Livro.query.get_or_404(id)
+    form = EditarLivro()
+    categorias = Categoria.query.order_by(Categoria.nome).all()
+    form.categoria.choices = [(c.id, c.nome) for c in categorias]
+
+    if form.validate_on_submit():
+        existente = Livro.query.filter_by(isbn=form.isbn.data).first()
+        if existente and existente.id != id:
+            flash('ISBN já usado por outro livro.', 'danger')
+            return render_template('editar_livro.html', form=form, livro=livro)
+
+        diferenca = form.quantidade.data - livro.quantidade
+        livro.isbn = form.isbn.data
+        livro.titulo = form.titulo.data
+        livro.autor = form.autor.data
+        livro.categoria_id = form.categoria.data
+        livro.editora = form.editora.data
+        livro.ano = form.ano.data
+        livro.quantidade = form.quantidade.data
+        livro.disponiveis = max(0, (livro.disponiveis or 0) + diferenca)
+
+        db.session.commit()
+        flash('Livro atualizado!', 'success')
+        return redirect(url_for('acervo'))
+
+    form.isbn.data = livro.isbn
+    form.titulo.data = livro.titulo
+    form.autor.data = livro.autor
+    form.categoria.data = livro.categoria_id
+    form.editora.data = livro.editora
+    form.ano.data = livro.ano
+    form.quantidade.data = livro.quantidade
+
+    return render_template('editar_livro.html', form=form, livro=livro)
+
+
+@app.route('/excluir_livro/<int:id>')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def excluir_livro(id):
+    livro = Livro.query.get_or_404(id)
+    # Impede exclusão se houver empréstimos ativos
+    active_loans = Emprestimo.query.filter_by(livro_id=livro.id, devolucao=False).count()
+    if active_loans > 0:
+        flash('Não é possível excluir livro com empréstimos ativos.', 'danger')
+        return redirect(url_for('acervo'))
+
+    db.session.delete(livro)
+    db.session.commit()
+    flash('Livro excluído.', 'success')
+    return redirect(url_for('acervo'))
+
+
+# ── categoria ─────────────────────────────────────────────────────────────────
+
+@app.route("/categoria/nova", methods=["POST"])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def nova_categoria():
+    nome = request.form.get("nome", "").strip()
+    if nome:
+        if not Categoria.query.filter_by(nome=nome.capitalize()).first():
+            db.session.add(Categoria(nome=nome.capitalize()))
+            db.session.commit()
+            flash(f'Categoria "{nome.capitalize()}" criada!', 'success')
+        else:
+            flash('Categoria já existe.', 'warning')
+    return redirect(url_for("cadastrar_livro"))
+
+
+# ── empréstimo ────────────────────────────────────────────────────────────────
+
+@app.route('/emprestimo', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def emprestimo():
+    livros = Livro.query.order_by(Livro.titulo).all()
+    usuarios = Usuario.query.filter(
+        Usuario.perfil.in_([PerfilEnum.ALUNO, PerfilEnum.PROFESSOR])
+    ).order_by(Usuario.nome).all()
+
+    if request.method == 'POST':
+        usuario_id = request.form.get('usuario')
+        livro_id = request.form.get('livro')
+
+        usuario = Usuario.query.get_or_404(usuario_id)
+        livro = Livro.query.get_or_404(livro_id)
+
+        emprestimos_ativos = Emprestimo.query.filter_by(
+            usuario_id=usuario.id, devolucao=False
+        ).count()
+
+        limite = 3 if usuario.perfil == PerfilEnum.ALUNO else 5
+
+        if emprestimos_ativos >= limite:
+            flash(
+                f'{usuario.nome} já atingiu o limite de {limite} livro(s) emprestado(s).',
+                'danger'
+            )
+            return redirect(url_for('emprestimo'))
+
+        if livro.disponiveis is None:
+            livro.disponiveis = livro.quantidade
+
+        if livro.disponiveis <= 0:
+            flash('Não há exemplares disponíveis para este livro.', 'danger')
+            return redirect(url_for('emprestimo'))
+
+        dias = 7 if usuario.perfil == PerfilEnum.ALUNO else 15
+
+        novo_emprestimo = Emprestimo(
+            usuario_id=usuario.id,
+            livro_id=livro.id,
+            data_emprestimo=datetime.utcnow(),
+            data_devolucao=datetime.utcnow() + timedelta(days=dias)
+        )
+
+        livro.disponiveis -= 1
+        db.session.add(novo_emprestimo)
+        db.session.commit()
+        flash(f'Empréstimo registrado! Devolução em {dias} dias.', 'success')
+        return redirect(url_for('emprestimo'))
+
+    return render_template('emprestimo.html', livros=livros, usuarios=usuarios)
+
+
+@app.route('/devolver/<int:id>')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def devolver(id):
+    emp = Emprestimo.query.get_or_404(id)
+    if not emp.devolucao:
+        emp.devolucao = True
+        if emp.livro:  # Proteção contra livro excluído
+            emp.livro.disponiveis = (emp.livro.disponiveis or 0) + 1
+        db.session.commit()
+        flash('Devolução registrada com sucesso!', 'success')
+    return redirect(url_for('relatorio'))
+
+
+# ── painéis de usuário ────────────────────────────────────────────────────────
+
+@app.route('/painel_aluno')
+@login_required
+@perfil_requerido(PerfilEnum.ALUNO)
+def painel_aluno():
+    hoje = datetime.utcnow()
+    emprestimos = Emprestimo.query.filter_by(
+        usuario_id=current_user.id, devolucao=False
+    ).all()
+    return render_template('painel_aluno.html', emprestimos=emprestimos, hoje=hoje)
+
+
+@app.route('/painel_professor', methods=['GET', 'POST'])
+@login_required
+@perfil_requerido(PerfilEnum.PROFESSOR)
+def painel_professor():
+    hoje = datetime.utcnow()
+    emprestimos = Emprestimo.query.filter_by(
+        usuario_id=current_user.id, devolucao=False
+    ).all()
+
+    form = SugestaoLivroForm()
+    if form.validate_on_submit():
+        sug = BookSuggestion(
+            titulo=form.titulo.data,
+            autor=form.autor.data,
+            professor_id=current_user.id
+        )
+        db.session.add(sug)
+        db.session.commit()
+        flash('Sugestão enviada para o bibliotecário!', 'success')
+        return redirect(url_for('painel_professor'))
+
+    sugestoes = BookSuggestion.query.filter_by(professor_id=current_user.id).all()
+    return render_template('painel_professor.html', emprestimos=emprestimos,
+                           hoje=hoje, form=form, sugestoes=sugestoes)
+
+
+# ── relatório ─────────────────────────────────────────────────────────────────
+
+@app.route('/relatorio')
+@login_required
+@perfil_requerido(PerfilEnum.ADMIN)
+def relatorio():
+    hoje = datetime.utcnow()
+
+    # 1. Captura o termo de busca digitado no input (name="busca")
+    busca = request.args.get('busca', '').strip()
+
+    categorias = Categoria.query.all()
+    livros_por_categoria = [
+        {'nome': c.nome, 'total': len(c.livros)} for c in categorias
+    ]
+
+    # 2. Cria as queries base para Ativos e Histórico
+    query_ativos = Emprestimo.query.options(joinedload(Emprestimo.livro), joinedload(Emprestimo.usuario)).filter_by(devolucao=False)
+    query_historico = Emprestimo.query.options(joinedload(Emprestimo.livro), joinedload(Emprestimo.usuario)).filter_by(devolucao=True)
+
+    # 3. Se o usuário digitou algo na busca, aplica os filtros relacionais
+    if busca:
+        filtro_pesquisa = or_(
+            Usuario.nome.ilike(f'%{busca}%'),
+            Usuario.sobrenome.ilike(f'%{busca}%'),
+            Livro.titulo.ilike(f'%{busca}%')
+        )
+        # É necessário dar .join() explicitamente nas tabelas para que o filtro funcione
+        query_ativos = query_ativos.join(Emprestimo.usuario).join(Emprestimo.livro).filter(filtro_pesquisa)
+        query_historico = query_historico.join(Emprestimo.usuario).join(Emprestimo.livro).filter(filtro_pesquisa)
+
+    # 4. Executa as queries com os filtros aplicados (se houverem)
+    emprestimos_ativos = query_ativos.all()
+    historico_emprestimos = query_historico.order_by(Emprestimo.id.desc()).all()
+
+    total_emprestimos = len(emprestimos_ativos)
+    atrasados = [e for e in emprestimos_ativos if e.data_devolucao and e.data_devolucao < hoje]
+    sugestoes = BookSuggestion.query.all()
+
+    # 5. Retorna os dados, incluindo a variável 'busca' para manter o texto no input
+    return render_template(
+        'relatorio.html',
+        livros_por_categoria=livros_por_categoria,
+        total_emprestimos=total_emprestimos,
+        emprestimos=emprestimos_ativos,
+        historico=historico_emprestimos,
+        atrasados=atrasados,
+        sugestoes=sugestoes,
+        hoje=hoje,
+        busca=busca
+    )
+
