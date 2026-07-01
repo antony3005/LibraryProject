@@ -35,6 +35,21 @@
 #painelIA .offcanvas-header {
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
-#iaResultadoLista li {
-    margin-bottom: 6px;
+
+.resultado-item {
+    display: block;
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.resultado-item:hover,
+.resultado-item:focus {
+    background: rgba(123, 47, 247, 0.25);
+    border-color: #7b2ff7;
+    outline: none;
 }
