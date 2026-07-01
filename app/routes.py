@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import date, datetime, timedelta
 from functools import wraps
 
@@ -12,6 +13,17 @@ from sqlalchemy.orm import joinedload
 from app import app, db
 from app.form import CadastroUsuario, CadastroLivro, EditarLivro, LoginForm, CategoriaForm, SugestaoLivroForm
 from app.models import Livro, Emprestimo, Usuario, PerfilEnum, Categoria, BookSuggestion
+
+# Detecta caracteres de escritas não-latinas (japonês, chinês, coreano, árabe,
+# cirílico, tailandês) para evitar sugerir títulos/autores nesses idiomas
+# quando a busca é feita em português.
+_PADRAO_NAO_LATINO = re.compile(
+    r'[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\u0600-\u06ff\u0400-\u04ff\u0e00-\u0e7f]'
+)
+
+
+def _tem_script_nao_latino(texto):
+    return bool(_PADRAO_NAO_LATINO.search(texto or ''))
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -156,6 +168,105 @@ def cadastro():
     return render_template("cadastro.html", form=form)
 
 
+# Palavras-chave (em inglês, como aparecem nos "subjects" da Open Library)
+# mapeadas para as categorias em português usadas no sistema.
+_MAPA_ASSUNTOS = [
+    (['fantasy'], 'Fantasia'),
+    (['science fiction', 'sci-fi', 'sci fi'], 'Ficção Científica'),
+    (['dystopia', 'dystopian'], 'Distopia'),
+    (['suspense'], 'Suspense'),
+    (['thriller'], 'Thriller'),
+    (['horror'], 'Terror'),
+    (['action and adventure', 'action fiction'], 'Ação'),
+    (['adventure'], 'Aventura'),
+    (['love stories', 'romance'], 'Romance'),
+    (['drama', 'plays'], 'Drama'),
+    (['poetry', 'poems'], 'Poesia'),
+    (['short stories'], 'Conto'),
+    (['detective', 'mystery', 'crime'], 'Policial'),
+    (['historical fiction', 'history'], 'Histórico'),
+    (['biography', 'autobiography'], 'Biografia'),
+    (['self-help', 'self help'], 'Autoajuda'),
+    (['juvenile fiction', 'young adult'], 'Juvenil'),
+    (['children'], 'Infantil'),
+    (['fiction'], 'Ficção'),
+    (['nonfiction', 'non-fiction'], 'Não Ficção'),
+]
+
+
+def _traduzir_assunto_para_categoria(assuntos):
+    for assunto in assuntos:
+        assunto_lower = assunto.lower()
+        for palavras_chave, categoria_pt in _MAPA_ASSUNTOS:
+            if any(p in assunto_lower for p in palavras_chave):
+                return categoria_pt
+    return None
+
+
+def _buscar_openlibrary(titulo_busca, restringir_portugues=False):
+    query = titulo_busca
+    if restringir_portugues:
+        query = f'{titulo_busca} language:por'
+
+    resposta = requests.get(
+        'https://openlibrary.org/search.json',
+        params={
+            'q': query,
+            'limit': 20,
+            'fields': 'key,title,author_name,first_publish_year,isbn,publisher,language,subject'
+        },
+        timeout=8
+    )
+    resposta.raise_for_status()
+    return resposta.json().get('docs') or []
+
+
+def _buscar_edicao_em_portugues(work_key):
+    """
+    Busca, dentre todas as edições de uma obra na Open Library, uma que esteja
+    catalogada em português — trazendo o título, editora, ano e ISBN reais
+    dessa edição (não o título "canônico" da obra, que costuma vir no idioma
+    original).
+    """
+    if not work_key:
+        return None
+    try:
+        resposta = requests.get(
+            f'https://openlibrary.org{work_key}/editions.json',
+            params={'limit': 50},
+            timeout=4
+        )
+        resposta.raise_for_status()
+        entradas = resposta.json().get('entries') or []
+    except Exception:
+        return None
+
+    for edicao in entradas:
+        idiomas = edicao.get('languages') or []
+        codigos = [(i.get('key') or '').split('/')[-1] for i in idiomas]
+        if 'por' not in codigos:
+            continue
+
+        titulo = (edicao.get('title') or '').strip()
+        if not titulo or _tem_script_nao_latino(titulo):
+            continue
+
+        editoras = edicao.get('publishers') or []
+        editora = editoras[0] if editoras else ''
+
+        publish_date = edicao.get('publish_date') or ''
+        ano_match = re.search(r'(\d{4})', publish_date)
+        ano = int(ano_match.group(1)) if ano_match else ''
+
+        isbns_13 = edicao.get('isbn_13') or []
+        isbns_10 = edicao.get('isbn_10') or []
+        isbn = isbns_13[0] if isbns_13 else (isbns_10[0] if isbns_10 else '')
+
+        return {'titulo': titulo, 'editora': editora, 'ano': ano, 'isbn': isbn}
+
+    return None
+
+
 # ── IA - preenchimento automático de livro ─────────────────────────────────────
 
 @app.route('/api/buscar_livro_ia', methods=['POST'])
@@ -166,66 +277,131 @@ def buscar_livro_ia():
     titulo_busca = (dados.get('titulo') or '').strip()
 
     if not titulo_busca:
-        return jsonify({'erro': 'Digite o nome do livro para pesquisar.'}), 400
+        return jsonify({'erro': 'Digite o nome do livro ou do autor para pesquisar.'}), 400
 
     categorias = Categoria.query.order_by(Categoria.nome).all()
 
+    # 1ª tentativa: restringir a resultados com edição em português
+    docs = []
     try:
-        resposta = requests.get(
-            'https://openlibrary.org/search.json',
-            params={'q': titulo_busca, 'limit': 1, 'lang': 'por'},
-            timeout=8
-        )
-        resposta.raise_for_status()
-        resultado = resposta.json()
+        docs = _buscar_openlibrary(titulo_busca, restringir_portugues=True)
     except Exception:
-        return jsonify({
-            'erro': 'Não foi possível consultar a base de livros agora. Tente novamente em instantes.'
-        }), 502
+        docs = []
 
-    docs = resultado.get('docs') or []
+    encontrado_em_portugues = bool(docs)
+
+    # 2ª tentativa: busca geral, se não houver edição em português catalogada
+    if not docs:
+        try:
+            docs = _buscar_openlibrary(titulo_busca, restringir_portugues=False)
+        except Exception:
+            return jsonify({
+                'erro': 'Não foi possível consultar a base de livros agora. Tente novamente em instantes.'
+            }), 502
+
     if not docs:
         return jsonify({'erro': 'Nenhum livro encontrado com esse nome.'}), 404
 
-    doc = docs[0]
+    def prioridade(doc):
+        idiomas = doc.get('language') or []
+        if 'por' in idiomas:
+            prioridade_idioma = 0
+        elif 'eng' in idiomas:
+            prioridade_idioma = 1
+        else:
+            prioridade_idioma = 2
 
-    titulo = doc.get('title', '') or ''
-    autores = doc.get('author_name') or []
-    autor = ', '.join(autores)
-    editoras = doc.get('publisher') or []
-    editora = editoras[0] if editoras else ''
-    ano = doc.get('first_publish_year') or ''
+        texto_titulo = doc.get('title', '') or ''
+        texto_autor = ' '.join(doc.get('author_name') or [])
+        script_nao_latino = _tem_script_nao_latino(texto_titulo) or _tem_script_nao_latino(texto_autor)
 
-    isbns = doc.get('isbn') or []
-    isbn = ''
-    if isbns:
-        isbn_13 = next((i for i in isbns if len(i) == 13), None)
-        isbn = isbn_13 or isbns[0]
+        return (1 if script_nao_latino else 0, prioridade_idioma)
 
-    subjects = doc.get('subject') or []
-    categoria_nome_sugerida = ''
-    categoria_id = None
-    if subjects:
-        for assunto in subjects:
+    docs_ordenados = sorted(docs, key=prioridade)
+
+    resultados = []
+    vistos = set()
+    consultas_edicao_feitas = 0
+    LIMITE_CONSULTAS_EDICAO = 6
+
+    for doc in docs_ordenados:
+        titulo = (doc.get('title') or '').strip()
+        autores = doc.get('author_name') or []
+        autor = ', '.join(autores)
+
+        if not titulo:
+            continue
+        chave = (titulo.lower(), autor.lower())
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+
+        editoras = doc.get('publisher') or []
+        editora = editoras[0] if editoras else ''
+        ano = doc.get('first_publish_year') or ''
+
+        isbns = doc.get('isbn') or []
+        isbn = ''
+        if isbns:
+            isbn_13 = next((i for i in isbns if len(i) == 13), None)
+            isbn = isbn_13 or isbns[0]
+
+        em_portugues = False
+
+        # Se a obra tem alguma edição em português catalogada, busca os dados
+        # reais dessa edição (título traduzido, editora e ISBN da tradução).
+        if 'por' in (doc.get('language') or []) and consultas_edicao_feitas < LIMITE_CONSULTAS_EDICAO:
+            consultas_edicao_feitas += 1
+            edicao_pt = _buscar_edicao_em_portugues(doc.get('key'))
+            if edicao_pt:
+                titulo = edicao_pt['titulo'] or titulo
+                editora = edicao_pt['editora'] or editora
+                ano = edicao_pt['ano'] or ano
+                isbn = edicao_pt['isbn'] or isbn
+                em_portugues = True
+
+        # Se, mesmo sem edição em português confirmada, o título/autor ainda
+        # tiver escrita não-latina, pula este resultado (não é útil ao admin).
+        if _tem_script_nao_latino(titulo) or _tem_script_nao_latino(autor):
+            continue
+
+        subjects = doc.get('subject') or []
+        categoria_nome_sugerida = _traduzir_assunto_para_categoria(subjects) or ''
+        categoria_id = None
+        if categoria_nome_sugerida:
             correspondente = next(
-                (c for c in categorias if c.nome.lower() == assunto.lower()),
+                (c for c in categorias if c.nome.lower() == categoria_nome_sugerida.lower()),
                 None
             )
             if correspondente:
                 categoria_id = correspondente.id
                 categoria_nome_sugerida = correspondente.nome
-                break
-        if not categoria_id:
-            categoria_nome_sugerida = subjects[0]
+
+        resultados.append({
+            'titulo': titulo,
+            'autor': autor,
+            'editora': editora,
+            'ano': ano,
+            'isbn': isbn,
+            'categoria_id': categoria_id,
+            'categoria_nome': categoria_nome_sugerida,
+            'em_portugues': em_portugues
+        })
+
+        if len(resultados) >= 8:
+            break
+
+    if not resultados:
+        return jsonify({'erro': 'Nenhum livro encontrado com esse nome.'}), 404
+
+    aviso = None
+    if not encontrado_em_portugues:
+        aviso = ('Não encontramos edições em português catalogadas para esta busca. '
+                 'Os resultados abaixo podem estar em outro idioma — revise antes de salvar.')
 
     return jsonify({
-        'titulo': titulo,
-        'autor': autor,
-        'editora': editora,
-        'ano': ano,
-        'isbn': isbn,
-        'categoria_id': categoria_id,
-        'categoria_nome': categoria_nome_sugerida
+        'resultados': resultados,
+        'aviso': aviso
     })
 
 
