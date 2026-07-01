@@ -1,67 +1,194 @@
 {% extends "base.html" %}
-
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorio.css') }}">
+<div class="container mt-4">
+    <h1><i class="fa-solid fa-chart-bar"></i> Relatório Estatístico</h1>
+    <p class="text-muted">Visão geral do acervo da biblioteca</p>
 
-<h1>📊 Relatório Estatístico</h1>
-<p>Visão geral do acervo da biblioteca</p>
+    <ul class="nav nav-tabs mt-4" id="relatorioTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active text-white bg-dark border-secondary" id="visao-geral-tab" data-bs-toggle="tab" data-bs-target="#visao-geral" type="button" role="tab">
+                <i class="fa-solid fa-eye"></i> Visão Geral
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-white bg-dark border-secondary ms-2" id="historico-tab" data-bs-toggle="tab" data-bs-target="#historico" type="button" role="tab">
+                <i class="fa-solid fa-history"></i> Histórico de Empréstimos
+            </button>
+        </li>
+    </ul>
 
+    <div class="tab-content" id="relatorioTabsContent">
+        
+        <div class="tab-pane fade show active" id="visao-geral" role="tabpanel">
+            <div class="cards mt-4">
+                <div class="card">
+                    <h2>{{ total_emprestimos }}</h2>
+                    <p>Empréstimos Ativos</p>
+                </div>
+                <div class="card">
+                    <h2>{{ livros_por_categoria|length }}</h2>
+                    <p>Categorias</p>
+                </div>
+                <div class="card bg-danger">
+                    <h2>{{ atrasados|length }}</h2>
+                    <p>Em Atraso</p>
+                </div>
+            </div>
 
-<div class="cards">
+            <div class="table-box mt-4">
+                <h3> Livros por Categoria</h3>
+                <table class="table table-dark table-hover table-striped">
+                    <thead>
+                        <tr><th>Categoria</th><th>Total de Livros</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in livros_por_categoria %}
+                        <tr>
+                            <td>{{ cat.nome }}</td>
+                            <td>{{ cat.total }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center">Nenhuma categoria cadastrada</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-    <div class="card">
-        <h2>{{ total_livros }}</h2>
-        <p>Total de Livros</p>
-    </div>
+            <div class="table-box mt-4">
+                <h3>📚 Empréstimos Ativos</h3>
+                <table class="table table-dark table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Perfil</th>
+                            <th>Livro</th>
+                            <th>Devolução</th>
+                            <th>Status</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in emprestimos %}
+                        <tr class="{% if emp.data_devolucao and emp.data_devolucao < hoje %}table-danger{% endif %}">
+                            <td>{{ emp.usuario.nome }} {{ emp.usuario.sobrenome }}</td>
+                            <td>{{ emp.usuario.perfil.value|capitalize }}</td>
+                            <td>{{ emp.livro.titulo }}</td>
+                            <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') if emp.data_devolucao else '—' }}</td>
+                            <td>
+                                {% if emp.data_devolucao and emp.data_devolucao < hoje %}
+                                    <span class="badge bg-danger">⚠️ Atrasado</span>
+                                {% else %}
+                                    <span class="badge bg-success">✅ Em dia</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('devolver', id=emp.id) }}"
+                                   class="btn btn-sm btn-outline-light"
+                                   onclick="return confirm('Confirmar devolução?')">
+                                     Devolver
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center">Nenhum empréstimo ativo</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-    <div class="card">
-        <h2>{{ total_emprestimos }}</h2>
-        <p>Empréstimos Ativos</p>
-    </div>
-
-    <div class="card">
-        <h2>{{ total_categorias }}</h2>
-        <p>Categorias</p>
-    </div>
-
-</div>
-
-<div class="table-box">
-
-    <h2>📚 Livros Emprestados</h2>
-
-    <table class="table table-dark table-hover table-striped">
-        <thead>
-        <tr>
-            <th>nome</th>
-            <th>Livro</th>
-            <th>Data de devolução</th>
-            <th>Perfil</th>
-        </tr>
-        </thead>
-
-        <tbody>
-        {% if emprestimos %}
-        {% for emprestimo in emprestimos %}
-        <tr>
-            <td>{{ emprestimo.usuario.nome }} {{ emprestimo.usuario.sobrenome }}</td>
-            <td>{{ emprestimo.livro.titulo }}</td>
-            {% if emprestimo.data_devolucao is not none %}
-            <td>{{ emprestimo.data_devolucao.strftime('%d/%m/%Y') }}</td>
+            {% if atrasados %}
+            <div class="table-box mt-4">
+                <h3>⚠️ Usuários com Livros em Atraso</h3>
+                <table class="table table-dark table-hover table-striped">
+                    <thead>
+                        <tr><th>Usuário</th><th>E-mail</th><th>Livro</th><th>Venceu em</th><th>Dias em atraso</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in atrasados %}
+                        <tr>
+                            <td>{{ emp.usuario.nome }} {{ emp.usuario.sobrenome }}</td>
+                            <td>{{ emp.usuario.email }}</td>
+                            <td>{{ emp.livro.titulo }}</td>
+                            <td>{{ emp.data_devolucao.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ (hoje - emp.data_devolucao).days }} dia(s)</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% endif %}
-            <td>{{ emprestimo.usuario.perfil.value }}</td>
-        </tr>
-        {% endfor %}
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center">
-                Nenhum emprestimo pendente
-            </td>
-        </tr>
-        {% endif %}
-        </tbody>
 
-    </table>
+            {% if sugestoes %}
+            <div class="table-box mt-4">
+                <h3>💡 Sugestões de Aquisição</h3>
+                <table class="table table-dark table-hover table-striped">
+                    <thead>
+                        <tr><th>Título</th><th>Autor</th><th>Solicitante</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sugestoes %}
+                        <tr>
+                            <td>{{ s.titulo }}</td>
+                            <td>{{ s.autor }}</td>
+                            <td>{{ s.professor.nome }} {{ s.professor.sobrenome }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
 
+        <div class="tab-pane fade" id="historico" role="tabpanel">
+            <div class="table-box mt-4">
+                <h3>📂 Histórico de Devoluções</h3>
+                <p class="text-muted">Lista de todos os livros que já foram devolvidos ao acervo.</p>
+                <form method="GET" action="{{ url_for('relatorio') }}" class="mb-4">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control bg-dark text-white border-secondary" 
+                                name="busca"
+                                placeholder="Nome do usuário, título do livro..."
+                                value="{{ busca }}">
+                        </div>
+                        <div class="col-md-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">Buscar</button>
+                            {% if busca %}
+                                <a href="{{ url_for('relatorio') }}" class="btn btn-outline-danger flex-fill">Limpar Filtro</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+                <table class="table table-dark table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Perfil</th>
+                            <th>Livro</th>
+                            <th>Data do Empréstimo</th>
+                            <th>Status da Entrega</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in historico %}
+                        <tr>
+                            <td>{{ emp.usuario.nome }} {{ emp.usuario.sobrenome }}</td>
+                            <td>{{ emp.usuario.perfil.value|capitalize }}</td>
+                            <td>{{ emp.livro.titulo if emp.livro else '<Livro Excluído>' }}</td>
+                            <td>{{ emp.data_emprestimo.strftime('%d/%m/%Y') if emp.data_emprestimo else '—' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">↩️ Devolvido</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center">Nenhum histórico registrado até o momento.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
 </div>
 {% endblock %}

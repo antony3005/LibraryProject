@@ -1,13 +1,2 @@
-body{
-    font-family:Arial;
-    background:#eef2f7;
-    padding:30px;
-}
-
-button{
-    padding:12px;
-    background:#1e3c72;
-    color:white;
-    border:none;
-    border-radius:5px;
-}
+.container { padding-top: 20px; }
+.table-danger td { background: rgba(220,53,69,0.2) !important; }

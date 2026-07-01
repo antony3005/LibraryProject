@@ -1,13 +1,10 @@
 {% extends "base.html" %}
-
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cadastro_livro.css') }}">
 <div class="page-center">
     <div class="container">
         <div class="container-form">
-
-            <h2>Cadastro</h2>
-
+            <h2>➕ Cadastrar Livro</h2>
             <form method="POST" class="mt-4">
                 {{ form.hidden_tag() }}
 
@@ -15,29 +12,25 @@
                     {{ form.titulo.label(class="form-label") }}
                     {{ form.titulo(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     {{ form.isbn.label(class="form-label") }}
                     {{ form.isbn(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     {{ form.autor.label(class="form-label") }}
                     {{ form.autor(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     {{ form.categoria.label(class="form-label") }}
                     {{ form.categoria(class="form-select", id="categoria") }}
-                    <a id="nova_categoria" href="#" data-bs-toggle="modal" data-bs-target="#modalCategoria">
-                        Nova categoria
-                    </a></div>
-
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#modalCategoria" class="text-info small mt-1 d-block">
+                        + Nova categoria
+                    </a>
+                </div>
                 <div class="mb-3">
                     {{ form.editora.label(class="form-label") }}
                     {{ form.editora(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     {{ form.ano.label(class="form-label") }}
                     {{ form.ano(class="form-control") }}
@@ -47,44 +40,36 @@
                     {{ form.quantidade(class="form-control") }}
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    {{ form.submit.label.text }}
-                </button>
+                <button type="submit" class="btn btn-primary w-100">{{ form.submit.label.text }}</button>
             </form>
-
+            <div class="mt-3 text-center">
+                <a href="{{ url_for('acervo') }}" class="text-light">← Voltar ao Acervo</a>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modal nova categoria -->
 <div class="modal fade" id="modalCategoria" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-
+        <div class="modal-content bg-dark text-white">
             <form method="POST" action="{{ url_for('nova_categoria') }}">
                 {{ form_categoria.hidden_tag() }}
-
                 <div class="modal-header">
                     <h5 class="modal-title">Nova Categoria</h5>
-
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-
                 <div class="modal-body">
                     <div class="mb-3">
                         {{ form_categoria.nome.label(class="form-label") }}
                         {{ form_categoria.nome(class="form-control") }}
                     </div>
                 </div>
-
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        Salvar
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
                 </div>
-
             </form>
-
         </div>
     </div>
 </div>
